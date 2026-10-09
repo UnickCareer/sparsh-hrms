@@ -40,6 +40,15 @@ import {
     SmilePlus,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import PollMessage, { PollViewVotesButton } from "../components/chat/poll/PollMessage";
+import PollVotesPanel from "../components/chat/poll/PollVotesPanel";
+import PollComposer from "../components/chat/poll/PollComposer";
+import MediaComposer from "../components/chat/media/MediaComposer";
+import MediaLightbox from "../components/chat/media/MediaLightbox";
+import MessageAttachments from "../components/chat/media/MessageAttachments";
+import { hasDownloaded, kindOf } from "../components/chat/media/mediaUtils";
+import { splitMessageTextLinks } from "../utils/messageLinks";
+import ChatInfoPanel from "../components/chat/info/ChatInfoPanel";
 
 /* =========================================================
    PHASE 2E
@@ -299,13 +308,14 @@ function Avatar({ name, avatar, size = "md", online = false }) {
    SEARCH HIGHLIGHT HELPER
 ========================================================= */
 
-function highlightText(text, query) {
+function highlightPlainText(text, query = "") {
     const value = String(text ?? "");
     const needle = String(query ?? "").trim();
-
     if (!needle) return value;
 
-    const parts = value.split(new RegExp(`(${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"));
+    const parts = value.split(
+        new RegExp(`(${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi")
+    );
 
     return parts.map((part, index) =>
         part.toLowerCase() === needle.toLowerCase() ? (
@@ -319,6 +329,31 @@ function highlightText(text, query) {
             <span key={`search-text-${index}`}>{part}</span>
         )
     );
+}
+
+function highlightText(text, query = "") {
+    return splitMessageTextLinks(text).map((part, index) => {
+        if (part.type === "link") {
+            return (
+                <a
+                    key={`message-link-${index}`}
+                    href={part.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-blue-600 underline underline-offset-2 decoration-blue-400/70 hover:text-blue-700"
+                    onClick={(event) => event.stopPropagation()}
+                >
+                    {part.value}
+                </a>
+            );
+        }
+
+        return (
+            <span key={`message-text-${index}`}>
+                {highlightPlainText(part.value, query)}
+            </span>
+        );
+    });
 }
 
 function renderInlineFormatting(text, searchQuery = "") {
@@ -1417,27 +1452,49 @@ function NewGroupModal({
    MESSAGE DELETE CONFIRMATION
 ========================================================= */
 
-function MessageDeleteModal({ message, onClose, onConfirm, busy = false }) {
-    if (!message) return null;
+function MessageDeleteModal({ messages, currentId, onClose, onConfirm, busy = false }) {
+    if (!messages?.length) return null;
+
+    const count = messages.length;
+    // "Delete for everyone" only when EVERY selected message is yours and not already deleted
+    const canEveryone = messages.every(
+        (item) =>
+            Number(item.sender_employee_id) === Number(currentId) && !item.deleted_at
+    );
 
     return (
         <div className="fixed inset-0 z-[230] flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-[2px] animate-chat-fade">
             <div className="w-full max-w-[320px] overflow-hidden rounded-[28px] bg-white shadow-2xl animate-chat-modal">
                 <div className="px-6 pb-5 pt-7 text-center">
                     <h3 className="text-[20px] font-medium tracking-tight text-gray-900">
-                        Delete this message?
+                        {count === 1 ? "Delete message?" : `Delete ${count} messages?`}
                     </h3>
                 </div>
+
+                {canEveryone && (
+                    <div className="px-4 pb-3">
+                        <button
+                            type="button"
+                            onClick={() => onConfirm("everyone")}
+                            disabled={busy}
+                            className="flex w-full items-center justify-center rounded-2xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                        >
+                            {busy ? "Please wait..." : "Delete for everyone"}
+                        </button>
+                    </div>
+                )}
+
                 <div className="px-4 pb-3">
                     <button
                         type="button"
-                        onClick={onConfirm}
+                        onClick={() => onConfirm("me")}
                         disabled={busy}
                         className="flex w-full items-center justify-center rounded-2xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
                     >
-                        {busy ? "Please wait..." : "Delete"}
+                        {busy ? "Please wait..." : "Delete for me"}
                     </button>
                 </div>
+
                 <div className="px-4 pb-5">
                     <button
                         type="button"
@@ -1669,6 +1726,8 @@ function MessageBubble({
     onOpenFullPicker,
     onOpenReactionDetails,
     onPollUpdated,
+    onViewPollVotes,
+    onOpenMediaViewer,
     menuOpen = false,
     pickerOpen = false,
     onToggleMenu,
@@ -1679,19 +1738,6 @@ function MessageBubble({
     const own = Number(message.sender_employee_id) === Number(currentId);
     const deleted = Boolean(message.deleted_at);
     const [editExpired, setEditExpired] = useState(false);
-    const [pollSelectedOptions, setPollSelectedOptions] = useState(() =>
-        (message.poll?.options || []).filter((option) => option.selected).map((option) => Number(option.id))
-    );
-    const [pollVoteBusy, setPollVoteBusy] = useState(false);
-
-    useEffect(() => {
-        setPollSelectedOptions(
-            (message.poll?.options || [])
-                .filter((option) => option.selected)
-                .map((option) => Number(option.id))
-        );
-    }, [message.id, message.poll]);
-
     useEffect(() => {
         if (!own || deleted || !message.created_at) {
             setEditExpired(false);
@@ -1736,6 +1782,32 @@ function MessageBubble({
     const pickerOverlayRef = useRef(null);
     const [overlayPosition, setOverlayPosition] = useState(null);
     const [pickerPosition, setPickerPosition] = useState(null);
+
+        // True only while the pointer is over an attachment (photo/video/document).
+    // Local to this bubble: there is no global hoveredMessageId.
+    // const [mediaHovered, setMediaHovered] = useState(false);
+    // useEffect(() => {
+    //     if (deleted || selectionMode) setMediaHovered(false);
+    // }, [deleted, selectionMode]);
+
+    // const chevronVisibility = menuOpen
+    //     ? "opacity-100"
+    //     : mediaHovered
+    //       ? "opacity-0 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+    //       : "opacity-0 group-hover/bubble:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100";
+    const hasVisualMedia =
+        !deleted &&
+        (message.attachments || []).some((att) =>
+            /^(image|video)\//i.test(String(att.file_type || ""))
+        );
+
+    // The chevron shows when the pointer is anywhere over the bubble,
+    // including its photos/videos.
+    const chevronVisibility = menuOpen
+        ? "opacity-100"
+        : "opacity-0 group-hover/bubble:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100";
+
+
 
     const updateOverlayPosition = useCallback(() => {
         if (!menuOpen || !bubbleRef.current || !overlayRef.current) {
@@ -1883,6 +1955,26 @@ function MessageBubble({
         }
     };
 
+    const isPoll = message.message_type === "poll" && Boolean(message.poll) && !deleted;
+
+    // time / edited / tick row shown at the bottom-right of a bubble
+    const renderMeta = (extraClass = "") => (
+        <span
+            className={`inline-flex ${extraClass} items-center justify-end gap-1 whitespace-nowrap pb-0.5 text-[9px] leading-3 ${
+                own && !deleted ? "text-white/70" : "text-gray-400"
+            }`}
+        >
+            {message.edited_at && !deleted && <span>edited</span>}
+            <span>{formatTime(message.created_at)}</span>
+            {own && !deleted && (() => {
+                const deliveryState = getMessageDeliveryState(message);
+                if (deliveryState === "read") return <CheckCheck size={12} className="text-sky-300" />;
+                if (deliveryState === "delivered") return <CheckCheck size={12} className="text-white/80" />;
+                return <Check size={12} className="text-white/80" />;
+            })()}
+        </span>
+    );
+
     const itemClass = "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-50";
 
     return (
@@ -1949,7 +2041,7 @@ function MessageBubble({
                             </span>
                     )}
 
-                    <div className="relative flex items-center gap-1">
+                    <div className="group/zone relative flex items-center gap-1">
                         {/* Sent: controls LEFT of bubble. Received: controls RIGHT of bubble. */}
                         {own && !selectionMode && (
                             <div ref={(node) => { pickerAnchorRef.current = node; quickReactionTrayRef.current = node; }} className={`order-1 flex shrink-0 items-center gap-0.5 transition-opacity duration-150 
@@ -1957,7 +2049,7 @@ function MessageBubble({
                                         ? "pointer-events-none opacity-0"
                                         : pickerOpen
                                             ? "opacity-100"
-                                            : "opacity-0 group-hover:opacity-100"
+                                            : "opacity-0 group-hover/zone:opacity-100 focus-within:opacity-100"
                                 }`}>
                                 <button onClick={() => onTogglePicker?.(message.id)} className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:bg-orange-50 hover:text-orange-500" title="React">
                                     <Smile size={15} />
@@ -1968,7 +2060,7 @@ function MessageBubble({
                             </div>
                         )}
 
-                        <div ref={bubbleRef} className={`relative order-2 w-fit max-w-full rounded-[14px] px-3 py-2 pb-3 ${
+                       <div ref={bubbleRef} className={`group/bubble relative order-2 w-fit max-w-full rounded-[14px] px-3 py-2 pb-3 ${
                                 deleted
                                     ? "border border-gray-200 bg-gray-50 text-gray-400"
                                     : own
@@ -1991,11 +2083,13 @@ function MessageBubble({
                                     event.stopPropagation();
                                     onToggleMenu?.(message.id);
                                 }}
-                                className={`absolute right-1 top-1 z-20 flex h-5 w-5 items-center justify-center rounded-md backdrop-blur-sm transition-opacity duration-150
-                                     ${own
-                                        ? "text-white/80 hover:text-white"
-                                        : "text-gray-400 hover:text-gray-700"
-                                            } ${menuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                                className={`absolute right-1 top-1 z-20 flex h-6 w-6 items-center justify-center backdrop-blur-sm transition-opacity duration-150 ${
+                                            hasVisualMedia
+                                                ? "rounded-full bg-black/50 text-white hover:bg-black/70"
+                                                : own
+                                                ? "rounded-md text-white/80 hover:text-white"
+                                                : "rounded-md text-gray-400 hover:text-gray-700"
+                                        } ${chevronVisibility}`}
                                             title="Message menu"
                                             aria-label="Message menu"
                                         >
@@ -2032,125 +2126,32 @@ function MessageBubble({
                                     <span>Starred</span>
                                 </div>
                             )}{message.message_type === "poll" && message.poll && !deleted && (
-                                <div className={`mb-2 rounded-2xl border p-3 ${own ? "border-white/20 bg-white/10" : "border-gray-200 bg-gray-50"}`}>
-                                    <div className="mb-2 flex items-center gap-2">
-                                        <BarChart3 size={15} className={own ? "text-white/80" : "text-emerald-600"} />
-                                        <span className={`text-[11px] font-semibold uppercase tracking-wide ${own ? "text-white/80" : "text-gray-500"}`}>Poll</span>
-                                    </div>
-                                    <p className={`text-sm font-semibold ${own ? "text-white" : "text-gray-900"}`}>{message.poll.question}</p>
-                                    <div className="mt-3 space-y-2">
-                                        {(message.poll.options || []).map((option) => {
-                                            const optionId = Number(option.id);
-                                            const selected = pollSelectedOptions.includes(optionId);
-                                            const totalVotes = (message.poll.options || []).reduce((sum, item) => sum + Number(item.voteCount || 0), 0);
-                                            const percent = totalVotes ? Math.round((Number(option.voteCount || 0) / totalVotes) * 100) : 0;
-                                            return (
-                                                <button
-                                                    key={option.id}
-                                                    type="button"
-                                                    disabled={pollVoteBusy}
-                                                    onClick={async () => {
-                                                        const next = message.poll.allowMultipleAnswers
-                                                            ? (selected ? pollSelectedOptions.filter((id) => id !== optionId) : [...pollSelectedOptions, optionId])
-                                                            : [optionId];
-                                                        if (!next.length) return;
-                                                        setPollSelectedOptions(next);
-                                                        try {
-                                                            setPollVoteBusy(true);
-                                                            const response = await fetch(`/api/chat/messages/${message.id}/poll-vote`, {
-                                                                method: "POST",
-                                                                headers: { "Content-Type": "application/json" },
-                                                                body: JSON.stringify({ employeeId: currentId, optionIds: next }),
-                                                            });
-                                                            const data = await response.json();
-                                                            if (!response.ok || !data.success) throw new Error(data.message || "Failed to vote");
-                                                            setPollSelectedOptions((data.poll?.options || []).filter((option) => option.selected).map((option) => Number(option.id)));
-                                                            onPollUpdated?.(message.id, data.poll);
-                                                        } catch (error) {
-                                                            toast.error(error.message);
-                                                        } finally {
-                                                            setPollVoteBusy(false);
-                                                        }
-                                                    }}
-                                                    className={`relative w-full overflow-hidden rounded-xl border px-3 py-2 text-left ${selected ? (own ? "border-white/60" : "border-orange-300") : (own ? "border-white/20" : "border-gray-200")}`}>
-                                                    <span className="absolute inset-y-0 left-0 opacity-40" style={{ width: `${percent}%`, background: "currentColor" }} />
-                                                    <span className="relative flex items-center justify-between gap-3">
-                                                        <span className="flex min-w-0 items-center gap-2">
-                                                            <span className={`h-3.5 w-3.5 shrink-0 rounded-full border ${selected ? "border-orange-500 bg-orange-500" : (own ? "border-white/70" : "border-gray-300")}`} />
-                                                            <span className="truncate text-xs font-medium">{option.optionText}</span>
-                                                        </span>
-                                                        <span className="text-[10px] opacity-70">{percent}%</span>
-                                                    </span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
+                                <>
+                                    <PollMessage message={message} currentId={currentId} own={own} onPollUpdated={onPollUpdated} />
+                                    <div className="mt-1 flex justify-end">{renderMeta()}</div>
+                                    <PollViewVotesButton own={own} onClick={() => onViewPollVotes?.(message.id)} />
+                                </>
                             )}
 
-                            {Array.isArray(message.attachments) && message.attachments.length > 0 && !deleted && (
-                                <div className="mb-2 space-y-2">
-                                    {message.attachments.map((attachment) => {
-                                        const type = String(attachment.file_type || "").toLowerCase();
-                                        const url = `${attachment.file_url}?employeeId=${currentId}`;
-                                        const isImage = type.startsWith("image/");
-                                        const isVideo = type.startsWith("video/");
-                                        return (
-                                            <div key={attachment.id} className={`overflow-hidden rounded-xl border ${own ? "border-white/20 bg-white/10" : "border-gray-200 bg-white"}`}>
-                                                {isImage ? (
-                                                    <a href={url} target="_blank" rel="noreferrer" className="block max-h-[360px] overflow-hidden">
-                                                        <img src={url} alt={attachment.file_name || "Image"} className="block max-h-[360px] w-full object-contain" loading="lazy" />
-                                                    </a>
-                                                ) : isVideo ? (
-                                                    <video src={url} controls preload="metadata" className="block max-h-[360px] w-full bg-black object-contain" />
-                                                ) : (
-                                                    <div className="flex items-center gap-3 p-3">
-                                                        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${own ? "bg-white/10 text-white" : "bg-gray-100 text-gray-500"}`}><FileText size={21}/></div>
-                                                        <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{attachment.file_name}</p><p className="text-[10px] opacity-60">{attachment.file_size ? `${(Number(attachment.file_size) / 1024 / 1024).toFixed(2)} MB` : "Document"}</p></div>
-                                                    </div>
-                                                )}
-                                                <div className="flex items-center justify-end gap-2 border-t border-black/5 px-2 py-1.5">
-                                                    <a href={url} target="_blank" rel="noreferrer" className={`rounded-lg px-2 py-1 text-[10px] font-semibold ${own ? "bg-white/10 text-white" : "bg-gray-100 text-gray-700"}`}>{isImage || isVideo ? "Open" : "View"}</a>
-                                                    <a href={url} download={attachment.file_name} className={`rounded-lg px-2 py-1 text-[10px] font-semibold ${own ? "bg-white/10 text-white" : "bg-gray-100 text-gray-700"}`}>Save as</a>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                            <MessageAttachments
+                                message={message}
+                                currentId={currentId}
+                                own={own}
+                                onOpenViewer={onOpenMediaViewer}
+                                // onHoverChange={setMediaHovered}
+                            />
 
                             {/* Keep metadata inline with the final text line. This mirrors WhatsApp:
                                 earlier lines use the full bubble width, while the final line naturally
                                 wraps before the timestamp/read-status when there is not enough room. */}
+                            {!isPoll && (
                             <MessageContent
                                 text={message.message}
                                 deleted={deleted}
                                 searchQuery={searchQuery}
-                                trailingMeta={
-                                    <span
-                                        className={`inline-flex translate-y-[6px] items-center justify-end gap-1 whitespace-nowrap pb-0.5 text-[9px] leading-3 ${
-                                            own && !deleted
-                                                ? "text-white/70"
-                                                : "text-gray-400"
-                                        }`}
-                                    >
-                                        {message.edited_at && !deleted && (
-                                            <span>edited</span>
-                                        )}
-                                        <span>{formatTime(message.created_at)}</span>
-                                        {own && !deleted && (() => {
-                                            const deliveryState = getMessageDeliveryState(message);
-                                            if (deliveryState === "read") {
-                                                return <CheckCheck size={12} className="text-sky-300" />;
-                                            }
-                                            if (deliveryState === "delivered") {
-                                                return <CheckCheck size={12} className="text-white/80" />;
-                                            }
-                                            return <Check size={12} className="text-white/80" />;
-                                        })()}
-                                    </span>
-                                }
+                                trailingMeta={renderMeta("translate-y-[6px]")}
                             />
+                            )}
 
                             {!selectionMode && ((menuOpen || pickerOpen) && createPortal(
                                 <>
@@ -2209,7 +2210,7 @@ function MessageBubble({
                                             <button onClick={() => { onPin?.(message); onToggleMenu?.(null); }} className={itemClass}><Pin size={14}/>{message.is_pinned ? "Unpin" : "Pin"}</button>
                                             <button onClick={() => { onStar?.(message); onToggleMenu?.(null); }} className={itemClass}><Star size={14}/>{message.is_starred ? "Unstar" : "Star"}</button>
                                             {canEdit && <button onClick={() => { onEdit(); onToggleMenu?.(null); }} className={itemClass}><Pencil size={14}/>Edit</button>}
-                                            {own && !deleted && <button onClick={() => { onDelete(); onToggleMenu?.(null); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-red-600 hover:bg-red-50"><Trash2 size={14}/>Delete</button>}
+                                            <button onClick={() => { onDelete(); onToggleMenu?.(null); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-red-600 hover:bg-red-50"><Trash2 size={14}/>Delete</button>
                                         </div>
                                     )}
                                 </>,
@@ -2218,7 +2219,7 @@ function MessageBubble({
                         </div>
 
                         {!own && !selectionMode && (
-                            <div ref={(node) => { pickerAnchorRef.current = node; quickReactionTrayRef.current = node; }} className={`order-3 flex shrink-0 items-center gap-0.5 transition-opacity duration-150 ${menuOpen ? "pointer-events-none opacity-0" : pickerOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+                            <div ref={(node) => { pickerAnchorRef.current = node; quickReactionTrayRef.current = node; }} className={`order-3 flex shrink-0 items-center gap-0.5 transition-opacity duration-150 ${menuOpen ? "pointer-events-none opacity-0" : pickerOpen ? "opacity-100" : "opacity-0 group-hover/zone:opacity-100 focus-within:opacity-100"}`}>
                                 <button onClick={() => onTogglePicker?.(message.id)} className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:bg-orange-50 hover:text-orange-500" title="React">
                                     <Smile size={15} />
                                 </button>
@@ -2313,18 +2314,21 @@ function Chat() {
     const [conversationSearch, setConversationSearch] = useState("");
     const [conversationSearchIndex, setConversationSearchIndex] = useState(0);
     const [groupInfoOpen, setGroupInfoOpen] = useState(false);
+    const chatWorkspaceRef = useRef(null);
     const [composerEmojiOpen, setComposerEmojiOpen] = useState(false);
     const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
     const [attachmentUploadBusy, setAttachmentUploadBusy] = useState(false);
     const [pendingAttachments, setPendingAttachments] = useState([]);
     const [attachmentCaption, setAttachmentCaption] = useState("");
     const [attachmentPreviewOpen, setAttachmentPreviewOpen] = useState(false);
+    const [mediaViewerAttachment, setMediaViewerAttachment] = useState(null);
     const [pollComposerOpen, setPollComposerOpen] = useState(false);
     const [pollQuestion, setPollQuestion] = useState("");
     const [pollOptions, setPollOptions] = useState(["", ""]);
     const [pollAllowMultiple, setPollAllowMultiple] = useState(false);
     const [pollAllowVoteChanges, setPollAllowVoteChanges] = useState(true);
     const [pollBusy, setPollBusy] = useState(false);
+    const [pollVotesMessageId, setPollVotesMessageId] = useState(null);
     const [reactionDetails, setReactionDetails] = useState(null);
     const [chatAction, setChatAction] = useState(null);
     const [chatActionBusy, setChatActionBusy] = useState(false);
@@ -2334,6 +2338,9 @@ function Chat() {
     const [selectedMessageIds, setSelectedMessageIds] = useState([]);
     const attachmentInputRef = useRef(null);
     const documentInputRef = useRef(null);
+    const forwardSuccessRef = useRef(null);
+        const selectedIdRef = useRef(null);
+    selectedIdRef.current = selectedId;
 
     const composerRef = useRef(null);
     const headerMenuRef = useRef(null);
@@ -2801,6 +2808,14 @@ function Chat() {
         }
     }, [editingMessage]);
 
+        // The preview lives inside the conversation pane while the sidebar stays
+    // clickable. Switching chats discards it so files can never go to the wrong chat.
+    useEffect(() => {
+        setAttachmentPreviewOpen(false);
+        setPendingAttachments([]);
+        setAttachmentCaption("");
+    }, [selectedId]);
+
     const filteredConversations = useMemo(
         () =>
             conversations.filter((conversation) =>
@@ -2811,17 +2826,38 @@ function Chat() {
         [conversations, search]
     );
 
-    const selectedDisplay = selectedConversation
-        ? conversations.find(
-              (conversation) =>
-                  Number(conversation.id) ===
-                  Number(selectedConversation.id)
-          )
-        : conversations.find(
-              (conversation) =>
-                  Number(conversation.id) ===
-                  Number(selectedId)
-          );
+    const selectedDisplay =
+        (selectedConversation
+            ? conversations.find(
+                  (conversation) =>
+                      Number(conversation.id) ===
+                      Number(selectedConversation.id)
+              )
+            : conversations.find(
+                  (conversation) =>
+                      Number(conversation.id) ===
+                      Number(selectedId)
+              )) ||
+        (selectedConversation?.conversation_type === "direct"
+            ? (() => {
+                  const other = (participants || []).find(
+                      (person) =>
+                          Number(person.employee_id) !==
+                          Number(employeeId)
+                  );
+
+                  return other
+                      ? {
+                            id: Number(selectedConversation.id),
+                            displayName:
+                                other.full_name ||
+                                "Direct conversation",
+                            displayAvatar: other.avatar || null,
+                            otherEmployee: other,
+                        }
+                      : null;
+              })()
+            : null);
 
     const conversationSearchResults = useMemo(() => {
         const query = conversationSearch.trim().toLowerCase();
@@ -3014,55 +3050,91 @@ function Chat() {
        DELETE
     ===================================================== */
 
-    const deleteCurrentMessage = async (
-        message
-    ) => {
-        if (!message || messageDeleteBusy) return;
+      const deleteMessagesWithScope = async (list, scope) => {
+        const targets = [
+            ...new Map((list || []).map((item) => [Number(item.id), item])).values(),
+        ];
+        if (!targets.length || messageDeleteBusy) return;
+
+        const everyone = scope === "everyone";
+        const eligible = everyone
+            ? targets.filter(
+                  (item) =>
+                      Number(item.sender_employee_id) === Number(employeeId) &&
+                      !item.deleted_at
+              )
+            : targets;
+
+        if (!eligible.length) {
+            setMessageDeleteConfirm(null);
+            toast("Only your own messages can be deleted for everyone.", { icon: "ℹ️" });
+            return;
+        }
 
         try {
             setMessageDeleteBusy(true);
-            const response = await fetch(
-                `/api/chat/messages/${message.id}`,
-                {
-                    method: "DELETE",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        employeeId,
-                    }),
-                }
+
+            const results = await Promise.allSettled(
+                eligible.map(async (item) => {
+                    const response = await fetch(`/api/chat/messages/${item.id}`, {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            employeeId,
+                            scope: everyone ? "everyone" : "me",
+                        }),
+                    });
+                    const data = await response.json();
+                    if (!response.ok || !data.success) {
+                        throw new Error(data.message || "Failed to delete message");
+                    }
+                    return { id: item.id, data };
+                })
             );
 
-            const data = await response.json();
+            const done = results
+                .filter((result) => result.status === "fulfilled")
+                .map((result) => result.value);
+            const failedCount = results.length - done.length;
 
-            if (!response.ok || !data.success) {
-                throw new Error(
-                    data.message ||
-                        "Failed to delete message"
+            if (done.length) {
+                const doneIds = new Set(done.map((entry) => Number(entry.id)));
+
+                if (everyone) {
+                    setMessages((prev) =>
+                        prev.map((item) => {
+                            const hit = done.find((entry) => Number(entry.id) === Number(item.id));
+                            return hit
+                                ? { ...item, ...hit.data.message, is_pinned: false, reactions: [] }
+                                : item;
+                        })
+                    );
+                } else {
+                    // "Delete for me": the message simply disappears from this side
+                    setMessages((prev) => prev.filter((item) => !doneIds.has(Number(item.id))));
+                }
+
+                setPinnedMessages((prev) => prev.filter((pin) => !doneIds.has(Number(pin.message_id))));
+                setStarredMessages((prev) => prev.filter((item) => !doneIds.has(Number(item.message_id))));
+                if (selectedId) await loadPinnedMessages(selectedId);
+                await loadStarredMessages();
+                if (!everyone && selectedId) await loadConversations(selectedId);
+
+                toast.success(
+                    done.length === 1 ? "Message deleted" : `${done.length} messages deleted`
                 );
             }
 
-            setMessages((prev) =>
-                prev.map((item) =>
-                    Number(item.id) === Number(message.id)
-                        ? {
-                              ...item,
-                              ...data.message,
-                              is_pinned: false,
-                              reactions: [],
-                          }
-                        : item
-                )
-            );
+            if (failedCount) {
+                toast.error(
+                    failedCount === 1
+                        ? "Could not delete 1 message"
+                        : `Could not delete ${failedCount} messages`
+                );
+            }
 
             setMessageDeleteConfirm(null);
-            setPinnedMessages((prev) => prev.filter((pin) => Number(pin.message_id) !== Number(message.id)));
-            setStarredMessages((prev) => prev.filter((item) => Number(item.message_id) !== Number(message.id)));
-            if (selectedId) await loadPinnedMessages(selectedId);
-            await loadStarredMessages();
-            toast.success("Message deleted");
-        } catch (error) {toast.error(error.message);
+            if (selectionMode && !failedCount) exitSelectionMode();
         } finally {
             setMessageDeleteBusy(false);
         }
@@ -3072,7 +3144,7 @@ function Chat() {
         if (!message || messageDeleteBusy) return;
         setActiveMessageMenuId(null);
         setActiveReactionMessageId(null);
-        setMessageDeleteConfirm(message);
+        setMessageDeleteConfirm([message]);
     };
 
    const replaceOldestPin = async (message) => {
@@ -3221,62 +3293,64 @@ const toggleMessageFlag = async (message, type) => {
        REACTION
     ===================================================== */
 
-    const react = async (message, emoji) => {
-        recordRecentEmoji(emoji);
+        const react = async (message, emoji) => {
+        const isDeleted = Boolean(message.deleted_at);
 
-        if (message.deleted_at) {
-            toast.error(
-                "Cannot react to a deleted message"
-            );
+        // Does the current employee already own THIS emoji on this message?
+        // Works with both shapes: grouped [{ emoji, employees: [...] }]
+        // and flat [{ emoji, employee_id }].
+        const ownsEmoji = (message.reactions || []).some((item) => {
+            if (item.emoji !== emoji) return false;
+            if (Array.isArray(item.employees)) {
+                return item.employees.some(
+                    (person) => Number(person.employee_id) === Number(employeeId)
+                );
+            }
+            return Number(item.employee_id) === Number(employeeId);
+        });
 
+        // A deleted message cannot get NEW reactions, but you can always
+        // remove your own.
+        if (isDeleted && !ownsEmoji) {
+            toast.error("Cannot react to a deleted message");
             return;
         }
 
+        if (!isDeleted) recordRecentEmoji(emoji);
+
         try {
+            // Deleted message + own emoji => REMOVE via the dedicated endpoint.
             const response = await fetch(
                 `/api/chat/messages/${message.id}/reaction`,
                 {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        employeeId,
-                        emoji,
-                    }),
+                    method: isDeleted ? "DELETE" : "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(
+                        isDeleted ? { employeeId } : { employeeId, emoji }
+                    ),
                 }
             );
 
             const data = await response.json();
 
             if (!response.ok || !data.success) {
-                throw new Error(
-                    data.message ||
-                        "Failed to react"
-                );
+                throw new Error(data.message || "Failed to react");
             }
 
-            const reactionResponse =
-                await fetch(
-                    `/api/chat/messages/${message.id}/reactions?employeeId=${employeeId}`
-                );
-
-            const reactionData =
-                await reactionResponse.json();
+            const reactionResponse = await fetch(
+                `/api/chat/messages/${message.id}/reactions?employeeId=${employeeId}`
+            );
+            const reactionData = await reactionResponse.json();
 
             setMessages((prev) =>
                 prev.map((item) =>
-                    Number(item.id) ===
-                    Number(message.id)
+                    Number(item.id) === Number(message.id)
                         ? {
                               ...item,
                               reactions:
-                                  reactionResponse.ok &&
-                                  reactionData.success
-                                      ? reactionData.reactions ||
-                                        []
-                                      : item.reactions ||
-                                        [],
+                                  reactionResponse.ok && reactionData.success
+                                      ? reactionData.reactions || []
+                                      : item.reactions || [],
                           }
                         : item
                 )
@@ -3342,6 +3416,10 @@ const toggleMessageFlag = async (message, type) => {
         );
 
         setForwardingMessage(null);
+
+        const onForwardDone = forwardSuccessRef.current;
+        forwardSuccessRef.current = null;
+        onForwardDone?.();
 
         if (
             conversationIds.some(
@@ -3447,40 +3525,13 @@ const toggleMessageFlag = async (message, type) => {
         }
     };
 
-    const deleteSelectedMessages = async () => {
-        if (!selectedId || !selectedMessageIds.length) return;
-        try {
-            const selected = messages.filter((message) => selectedMessageIds.includes(Number(message.id)));
-            const ownMessages = selected.filter((message) => Number(message.sender_employee_id) === Number(employeeId) && !message.deleted_at);
-            if (!ownMessages.length) {
-                exitSelectionMode();
-                toast("Only your own messages can be deleted.", { icon: "ℹ️" });
-                return;
-            }
-
-            const results = await Promise.all(
-                ownMessages.map((message) =>
-                    fetch(`/api/chat/messages/${message.id}`, {
-                        method: "DELETE",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ employeeId }),
-                    }).then(async (response) => {
-                        const data = await response.json();
-                        if (!response.ok || !data.success) throw new Error(data.message || "Failed to delete message");
-                        return { id: message.id, data };
-                    })
-                )
-            );
-
-            setMessages((current) => current.map((message) => {
-                const result = results.find((item) => Number(item.id) === Number(message.id));
-                return result ? { ...message, ...result.data.message, reactions: [] } : message;
-            }));
-            exitSelectionMode();
-            toast.success(results.length === 1 ? "Message deleted" : `${results.length} messages deleted`);
-        } catch (error) {
-            toast.error(error.message);
-        }
+        const deleteSelectedMessages = () => {
+        if (!selectedMessageIds.length) return;
+        const selected = messages.filter((message) =>
+            selectedMessageIds.includes(Number(message.id))
+        );
+        if (!selected.length) return;
+        setMessageDeleteConfirm(selected);
     };
 
     const forwardSelectedMessage = () => {
@@ -3493,6 +3544,51 @@ const toggleMessageFlag = async (message, type) => {
     exitSelectionMode();
     setForwardingMessage(selected);
 };
+
+        // Chat Info panel -> reuse the existing ForwardModal / forward() flow
+    const openForwardFromInfo = useCallback((messageIds, onSuccess) => {
+        const ids = [...new Set((messageIds || []).map(Number).filter((id) => Number.isInteger(id) && id > 0))];
+        if (!ids.length) return;
+        forwardSuccessRef.current = typeof onSuccess === "function" ? onSuccess : null;
+        setForwardingMessage(ids.map((id) => ({ id })));
+    }, []);
+
+    // Chat Info panel deleted messages via the existing DELETE endpoint -> sync local state
+        const handleInfoMessagesDeleted = useCallback(async (deleted = []) => {
+        if (!deleted.length) return;
+
+        const everyoneMap = new Map();
+        const meIds = new Set();
+        deleted.forEach((entry) => {
+            if (entry.scope === "me") meIds.add(Number(entry.id));
+            else everyoneMap.set(Number(entry.id), entry.message);
+        });
+        const allIds = new Set([...meIds, ...everyoneMap.keys()]);
+
+        setMessages((current) =>
+            current
+                .filter((message) => !meIds.has(Number(message.id)))
+                .map((message) => {
+                    if (!everyoneMap.has(Number(message.id))) return message;
+                    const server = everyoneMap.get(Number(message.id));
+                    return {
+                        ...message,
+                        ...(server || {
+                            deleted_at: new Date().toISOString(),
+                            message: "This message was deleted",
+                        }),
+                        is_pinned: false,
+                        reactions: [],
+                    };
+                })
+        );
+        setPinnedMessages((prev) => prev.filter((pin) => !allIds.has(Number(pin.message_id))));
+        setStarredMessages((prev) => prev.filter((item) => !allIds.has(Number(item.message_id))));
+
+        if (selectedId) await loadPinnedMessages(selectedId);
+        await loadStarredMessages();
+        if (meIds.size && selectedId) await loadConversations(selectedId);
+    }, [selectedId, loadPinnedMessages, loadStarredMessages, loadConversations]);
 
     /* =====================================================
        Q5 REPLY
@@ -3752,53 +3848,114 @@ const closeFullPicker = useCallback(() => {
         if (!selectedId || !employeeId || !files.length) return;
 
         const selected = Array.from(files);
+        const isMedia = (file) =>
+            file.type.startsWith("image/") || file.type.startsWith("video/");
         const videos = selected.filter((file) => file.type.startsWith("video/"));
         const photos = selected.filter((file) => file.type.startsWith("image/"));
-        const documents = selected.filter((file) => !file.type.startsWith("image/") && !file.type.startsWith("video/"));
+        const documents = selected.filter((file) => !isMedia(file));
 
-        if (documents.length > 0 && selected.length > 1) {
-            toast.error("Send one document at a time.");
-            return;
-        }
         if (photos.length + videos.length > 8) {
             toast.error("You can attach at most 8 photos/videos at once.");
             return;
         }
+
         if (videos.length > 2) {
             toast.error("You can attach at most 2 videos at once.");
             return;
         }
+
         if (photos.some((file) => file.size > 16 * 1024 * 1024)) {
             toast.error("Each photo must be 16 MB or smaller.");
             return;
         }
+
         if (videos.some((file) => file.size > 100 * 1024 * 1024)) {
             toast.error("Each video must be 100 MB or smaller.");
             return;
         }
+
         if (documents.some((file) => file.size > 100 * 1024 * 1024)) {
             toast.error("Documents must be 100 MB or smaller.");
             return;
         }
 
-        const formData = new FormData();
-        formData.append("employeeId", String(employeeId));
-        if (caption.trim()) formData.append("caption", caption.trim());
-        if (replyingTo?.id) formData.append("replyToMessageId", String(replyingTo.id));
-        selected.forEach((file) => formData.append("files", file));
+        /*
+         * WhatsApp-style media grouping:
+         *
+         * 1-3 photos/videos -> each file gets its own message bubble.
+         * 4+ photos/videos  -> all media stay together in one message,
+         *                       allowing MessageAttachments to render a 2x2 grid.
+         *
+         * Documents remain one document per message.
+         */
+        const batches = [];
+        const media = selected.filter(isMedia);
+
+        if (media.length > 0) {
+            if (media.length <= 3) {
+                media.forEach((file) => batches.push([file]));
+            } else {
+                batches.push(media);
+            }
+        }
+
+        documents.forEach((file) => batches.push([file]));
 
         try {
             setAttachmentUploadBusy(true);
-            const response = await fetch(`/api/chat/conversations/${selectedId}/attachments`, { method: "POST", body: formData });
-            const data = await response.json();
-            if (!response.ok || !data.success) throw new Error(data.message || "Failed to upload attachment");
-            setMessages((prev) => [...prev, { ...data.message, reactions: data.message?.reactions || [] }]);
+
+            for (let i = 0; i < batches.length; i += 1) {
+                const formData = new FormData();
+
+                formData.append("employeeId", String(employeeId));
+
+                if (i === 0 && caption.trim()) {
+                    formData.append("caption", caption.trim());
+                }
+
+                if (i === 0 && replyingTo?.id) {
+                    formData.append(
+                        "replyToMessageId",
+                        String(replyingTo.id)
+                    );
+                }
+
+                batches[i].forEach((file) => {
+                    formData.append("files", file);
+                });
+
+                const response = await fetch(
+                    `/api/chat/conversations/${selectedId}/attachments`,
+                    {
+                        method: "POST",
+                        body: formData,
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(
+                        data.message || "Failed to upload attachment"
+                    );
+                }
+
+             if (Number(selectedIdRef.current) === Number(selectedId)) {
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        ...data.message,
+                        reactions: data.message?.reactions || [],
+                    },
+                ]);
+            }
+}
             setReplyingTo(null);
             setPendingAttachments([]);
             setAttachmentCaption("");
             setAttachmentPreviewOpen(false);
+
             await loadConversations(selectedId);
-            toast.success("Attachment sent");
         } catch (error) {
             toast.error(error.message);
         } finally {
@@ -3890,7 +4047,7 @@ const closeFullPicker = useCallback(() => {
 
     return (
         <div className="chat-page h-[calc(100vh-4rem)] min-h-0 w-full overflow-hidden p-0">
-            <div className="relative flex h-full min-h-0 w-full overflow-hidden rounded-none border-0 bg-white shadow-none">
+            <div className="isolate relative flex h-full min-h-0 w-full overflow-hidden rounded-none border-0 bg-white shadow-none">
                 {/* =================================================
                    SIDEBAR
                 ================================================= */}
@@ -4236,7 +4393,7 @@ const closeFullPicker = useCallback(() => {
                    MAIN CHAT
                 ================================================= */}
 
-                <section className="relative flex min-w-0 flex-1 flex-col bg-[#f8fafc]">
+                <section ref={chatWorkspaceRef} className="relative flex min-w-0 flex-1 flex-col bg-[#f8fafc]">
                     {!selectedId ||
                     !selectedConversation ? (
                         <EmptyState
@@ -4246,9 +4403,11 @@ const closeFullPicker = useCallback(() => {
                         />
                     ) : (
                         <>
-                            <header className="relative z-20 flex items-center justify-between border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur md:px-5">
+                            <header 
+                                onClick={() => setGroupInfoOpen(true)}
+                                className="relative z-20 flex cursor-pointer items-center justify-between border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur md:px-5">
                                 <div className="flex min-w-0 items-center gap-3">
-                                    <button onClick={() => setMobileListOpen(true)} className="rounded-xl p-2 text-gray-400 hover:bg-gray-100 md:hidden" title="Back to conversations"><ArrowLeft size={18} /></button>
+                                    <button onClick={(event) => { event.stopPropagation(); setMobileListOpen(true); }} className="rounded-xl p-2 text-gray-400 hover:bg-gray-100 md:hidden" title="Back to conversations"><ArrowLeft size={18} /></button>
                                     <button type="button" onClick={() => setGroupInfoOpen(true)} className="flex min-w-0 items-center gap-3 rounded-2xl text-left hover:bg-gray-50" title="Open chat info">
                                         <Avatar name={selectedDisplay?.displayName || selectedConversation.title} avatar={selectedDisplay?.displayAvatar || selectedConversation.avatar} online={selectedConversation.conversation_type === "direct"} />
                                         <div className="min-w-0">
@@ -4257,7 +4416,7 @@ const closeFullPicker = useCallback(() => {
                                         </div>
                                     </button>
                                 </div>
-                                <div className="relative flex items-center gap-1" data-chat-overlay-root>
+                                <div className="relative flex items-center gap-1" data-chat-overlay-root onClick={(event) => event.stopPropagation()}>
                                     <button onClick={() => { setConversationSearchOpen((v) => !v); setHeaderMenuOpen(false); }} className={`rounded-xl p-2 transition ${conversationSearchOpen ? "bg-orange-50 text-orange-500" : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"}`} title="Search messages" aria-label="Search messages"><Search size={17} /></button>
                                     <button onClick={() => { setHeaderMenuOpen((v) => !v); setConversationSearchOpen(false); }} className={`rounded-xl p-2 transition ${headerMenuOpen ? "bg-gray-100 text-gray-700" : "text-gray-400 hover:bg-gray-50 hover:text-gray-700"}`} title="Menu" aria-label="Menu"><MoreHorizontal size={18} /></button>
                                     {conversationSearchOpen && <div ref={conversationSearchRef} className="absolute right-10 top-12 z-[80] w-[min(92vw,390px)] rounded-2xl border border-gray-200 bg-white p-3 shadow-2xl animate-chat-pop">
@@ -4374,7 +4533,9 @@ const closeFullPicker = useCallback(() => {
                                                         onToggleSelect={toggleMessageSelection}
                                                         onOpenReactionDetails={openReactionDetails}
                                                         onPollUpdated={updatePollInMessages}
+                                                        onViewPollVotes={setPollVotesMessageId}
                                                         onOpenFullPicker={openFullPicker}
+                                                        onOpenMediaViewer={setMediaViewerAttachment}
                                                         menuOpen={activeMessageMenuId === message.id}
                                                         pickerOpen={activeReactionMessageId === message.id}
                                                         onToggleMenu={toggleMessageMenu}
@@ -4658,20 +4819,62 @@ const closeFullPicker = useCallback(() => {
                             )}
                         </>
                     )}
+            {/** ChatInfoPanel is rendered inside the Chat workspace so it cannot cover the global dashboard topbar. */}
+            {groupInfoOpen && selectedConversation && (
+                <ChatInfoPanel
+                    onForwardMessages={openForwardFromInfo}
+                    onMessagesDeleted={handleInfoMessagesDeleted}
+                    conversation={selectedConversation}
+                    participants={participants}
+                    currentId={employeeId}
+                    selectedDisplay={selectedDisplay}
+                    employees={employees}
+                    onClose={() => setGroupInfoOpen(false)}
+                    onRefreshConversation={() => loadMessages(selectedConversation.id)}
+                    onOpenConversation={async (conversationId, messageId = null) => {
+                        const nextConversationId = Number(conversationId);
+                        if (!Number.isInteger(nextConversationId) || nextConversationId <= 0) {
+                            toast.error("Invalid conversation");
+                            return;
+                        }
+
+                        setGroupInfoOpen(false);
+                        setSelectedConversation(null);
+                        setParticipants([]);
+                        setMessages([]);
+                        setPinnedMessages([]);
+                        setActivePinnedIndex(0);
+                        setHighlightedMessageId(null);
+                        setMobileListOpen(false);
+                        setStarredTarget(
+                            messageId
+                                ? {
+                                      conversationId: nextConversationId,
+                                      messageId: Number(messageId),
+                                  }
+                                : null
+                        );
+
+                        // Select immediately. This also works when the chat was
+                        // previously deleted and is therefore absent from the sidebar.
+                        setSelectedId(nextConversationId);
+
+                        // Refresh the sidebar in the background. The selectedId effect
+                        // independently loads the conversation and its messages.
+                        try {
+                            await loadConversations(nextConversationId);
+                        } catch (error) {
+                            console.error(
+                                "Refresh conversations after opening chat:",
+                                error
+                            );
+                        }
+                    }}
+                />
+            )}
+
                 </section>
             </div>
-
-            {groupInfoOpen && selectedConversation && (
-                <div className="fixed inset-0 z-[95] flex justify-end">
-                    <button className="absolute inset-0 bg-slate-950/30" aria-label="Close info" onClick={() => setGroupInfoOpen(false)} />
-                    <aside className="relative h-full w-full max-w-[560px] overflow-y-auto border-l border-gray-100 bg-white shadow-2xl animate-chat-slide">
-                        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white/95 px-5 py-4 backdrop-blur"><div><p className="text-xs font-semibold uppercase tracking-wider text-orange-500">{selectedConversation.conversation_type === "group" ? "Group Info" : "Contact Info"}</p><h3 className="mt-0.5 text-lg font-bold text-gray-900">{selectedDisplay?.displayName || selectedConversation.title || "Conversation"}</h3></div><button onClick={() => setGroupInfoOpen(false)} className="rounded-xl p-2 text-gray-400 hover:bg-gray-100" title="Close"><X size={18}/></button></div>
-                        <div className="p-5"><div className="flex flex-col items-center rounded-3xl bg-gray-50 px-5 py-7 text-center"><Avatar name={selectedDisplay?.displayName || selectedConversation.title || "Conversation"} avatar={selectedDisplay?.displayAvatar || selectedConversation.avatar} size="lg"/><h4 className="mt-3 text-lg font-bold text-gray-900">{selectedDisplay?.displayName || selectedConversation.title || "Conversation"}</h4><p className="mt-1 text-xs text-gray-500">{selectedConversation.conversation_type === "group" ? `${participants.length} members` : selectedDisplay?.otherEmployee?.designation || "Employee"}</p></div>
-                        {selectedConversation.conversation_type === "group" && <><div className="mt-5 rounded-2xl border border-gray-100 p-4"><p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Description</p><p className="mt-2 text-sm leading-6 text-gray-700">{selectedConversation.description || "No description added."}</p></div><button onClick={() => toast("Media, Links and Docs are available in the conversation data; the dedicated tab browser will be connected after the attachment controller update.",{icon:"ℹ️"})} className="mt-5 flex w-full items-center justify-between rounded-2xl border border-gray-100 px-4 py-4 text-left hover:bg-gray-50"><div><p className="text-sm font-semibold text-gray-900">Media, links and docs</p><p className="mt-0.5 text-xs text-gray-400">Photos · Videos · GIFs · Links · Docs</p></div><ExternalLink size={16} className="text-gray-400"/></button><div className="mt-5"><div className="mb-3 flex items-center justify-between"><p className="text-sm font-bold text-gray-900">Members</p><span className="text-xs text-gray-400">{participants.length}</span></div><div className="space-y-1">{participants.map((person)=><div key={person.employee_id} className="flex items-center gap-3 rounded-2xl p-2.5 hover:bg-gray-50"><Avatar name={person.full_name} avatar={person.avatar} size="sm"/><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-gray-800">{person.full_name}</p><p className="truncate text-[11px] text-gray-400">{person.participant_role === "owner" ? "Owner" : person.participant_role === "admin" ? "Admin" : "Member"}</p></div></div>)}</div></div></>}
-                        </div>
-                    </aside>
-                </div>
-            )}
 
             {/* =====================================================
                MODALS
@@ -4714,12 +4917,15 @@ const closeFullPicker = useCallback(() => {
 
             {messageDeleteConfirm && (
                 <MessageDeleteModal
-                    message={messageDeleteConfirm}
+                    messages={messageDeleteConfirm}
+                    currentId={employeeId}
                     busy={messageDeleteBusy}
                     onClose={() => {
                         if (!messageDeleteBusy) setMessageDeleteConfirm(null);
                     }}
-                    onConfirm={() => deleteCurrentMessage(messageDeleteConfirm)}
+                    onConfirm={(scope) =>
+                        deleteMessagesWithScope(messageDeleteConfirm, scope)
+                    }
                 />
             )}
 
@@ -4780,65 +4986,78 @@ const closeFullPicker = useCallback(() => {
     );
 })()}
             {attachmentPreviewOpen && pendingAttachments.length > 0 && (
-                <div className="fixed inset-0 z-[235] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[2px]">
-                    <div className="w-full max-w-[620px] overflow-hidden rounded-[28px] bg-white shadow-2xl">
-                        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
-                            <div><h3 className="text-lg font-semibold text-gray-900">Preview attachment</h3><p className="mt-1 text-xs text-gray-400">Review your media and add an optional caption before sending.</p></div>
-                            <button type="button" disabled={attachmentUploadBusy} onClick={() => { setAttachmentPreviewOpen(false); setPendingAttachments([]); setAttachmentCaption(""); }} className="rounded-xl p-2 text-gray-400 hover:bg-gray-100"><X size={18}/></button>
-                        </div>
-                        <div className="max-h-[58vh] overflow-y-auto p-5 chat-scrollbar">
-                            <div className={`grid gap-3 ${pendingAttachments.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-                                {pendingAttachments.map((file, index) => {
-                                    const preview = URL.createObjectURL(file);
-                                    const isImage = file.type.startsWith("image/");
-                                    const isVideo = file.type.startsWith("video/");
-                                    return <div key={`${file.name}-${file.lastModified}-${index}`} className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
-                                        {isImage ? <img src={preview} alt={file.name} className="max-h-[300px] w-full object-contain bg-black/5" onLoad={(e) => URL.revokeObjectURL(e.currentTarget.src)} /> : isVideo ? <video src={preview} controls className="max-h-[300px] w-full bg-black object-contain" onLoadedData={(e) => URL.revokeObjectURL(e.currentTarget.src)} /> : <div className="flex h-40 items-center justify-center text-gray-400"><FileText size={42}/></div>}
-                                        <div className="border-t border-gray-200 px-3 py-2"><p className="truncate text-xs font-semibold text-gray-700">{file.name}</p><p className="mt-0.5 text-[10px] text-gray-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p></div>
-                                    </div>;
-                                })}
-                            </div>
-                            <textarea value={attachmentCaption} onChange={(e) => setAttachmentCaption(e.target.value)} rows={3} placeholder="Add a caption (optional)" className="mt-4 w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-50" />
-                        </div>
-                        <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
-                            <button type="button" disabled={attachmentUploadBusy} onClick={() => { setAttachmentPreviewOpen(false); setPendingAttachments([]); setAttachmentCaption(""); }} className="rounded-2xl px-5 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-100">Cancel</button>
-                            <button type="button" disabled={attachmentUploadBusy} onClick={() => uploadSelectedAttachments(pendingAttachments, attachmentCaption)} className="rounded-2xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50">{attachmentUploadBusy ? "Sending…" : "Send"}</button>
-                        </div>
-                    </div>
-                </div>
+                <MediaComposer
+                    initialFiles={pendingAttachments}
+                    busy={attachmentUploadBusy}
+                    EmojiPicker={FullReactionPicker}
+                    container={chatWorkspaceRef.current}
+                    onClose={() => {
+                        setAttachmentPreviewOpen(false);
+                        setPendingAttachments([]);
+                        setAttachmentCaption("");
+                    }}
+                    onSend={({ files, caption }) => uploadSelectedAttachments(files, caption)}
+                />
             )}
 
             {pollComposerOpen && (
-                <div className="fixed inset-0 z-[240] flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-[2px] animate-chat-fade">
-                    <div className="w-full max-w-[520px] overflow-hidden rounded-[28px] bg-white shadow-2xl">
-                        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900">Create poll</h3>
-                                <p className="mt-1 text-xs text-gray-400">Ask the group a question and collect votes.</p>
-                            </div>
-                            <button type="button" onClick={() => setPollComposerOpen(false)} className="rounded-xl p-2 text-gray-400 hover:bg-gray-100"><X size={18}/></button>
-                        </div>
-                        <div className="space-y-4 px-6 py-5">
-                            <input value={pollQuestion} onChange={(e) => setPollQuestion(e.target.value)} placeholder="Question" className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-orange-300" autoFocus />
-                            <div className="space-y-2">
-                                {pollOptions.map((option, index) => (
-                                    <div key={index} className="flex gap-2">
-                                        <input value={option} onChange={(e) => setPollOptions((prev) => prev.map((v, i) => i === index ? e.target.value : v))} placeholder={`Option ${index + 1}`} className="min-w-0 flex-1 rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-orange-300" />
-                                        {pollOptions.length > 2 && <button type="button" onClick={() => setPollOptions((prev) => prev.filter((_, i) => i !== index))} className="rounded-xl px-3 text-gray-400 hover:bg-gray-100"><X size={16}/></button>}
-                                    </div>
-                                ))}
-                            </div>
-                            {pollOptions.length < 12 && <button type="button" onClick={() => setPollOptions((prev) => [...prev, ""])} className="text-sm font-semibold text-orange-600 hover:text-orange-700">+ Add option</button>}
-                            <label className="flex items-center gap-3 text-sm text-gray-700"><input type="checkbox" checked={pollAllowMultiple} onChange={(e) => setPollAllowMultiple(e.target.checked)} className="h-4 w-4 accent-orange-500" /> Allow multiple answers</label>
-                            <label className="flex items-center gap-3 text-sm text-gray-700"><input type="checkbox" checked={pollAllowVoteChanges} onChange={(e) => setPollAllowVoteChanges(e.target.checked)} className="h-4 w-4 accent-orange-500" /> Allow vote changes</label>
-                        </div>
-                        <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
-                            <button type="button" onClick={() => setPollComposerOpen(false)} className="rounded-2xl px-5 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-100">Cancel</button>
-                            <button type="button" disabled={pollBusy} onClick={submitPoll} className="rounded-2xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50">{pollBusy ? "Sending…" : "Send poll"}</button>
-                        </div>
-                    </div>
-                </div>
+                <PollComposer
+                    question={pollQuestion}
+                    setQuestion={setPollQuestion}
+                    options={pollOptions}
+                    setOptions={setPollOptions}
+                    allowMultiple={pollAllowMultiple}
+                    setAllowMultiple={setPollAllowMultiple}
+                    allowVoteChanges={pollAllowVoteChanges}
+                    setAllowVoteChanges={setPollAllowVoteChanges}
+                    busy={pollBusy}
+                    onSubmit={submitPoll}
+                    onClose={() => setPollComposerOpen(false)}
+                    EmojiPicker={FullReactionPicker}
+                />
             )}
+
+            {pollVotesMessageId && (() => {
+                const pollMessage = messages.find((m) => Number(m.id) === Number(pollVotesMessageId));
+                return pollMessage?.poll ? (
+                    <PollVotesPanel
+                        message={pollMessage}
+                        currentId={employeeId}
+                        onPollUpdated={updatePollInMessages}
+                        onClose={() => setPollVotesMessageId(null)}
+                        boundaryRef={chatWorkspaceRef}
+                    />
+                ) : null;
+            })()}
+
+            {mediaViewerAttachment && (() => {
+                const clicked = mediaViewerAttachment;
+                const clickedKind = kindOf(clicked.file_type, clicked.file_name);
+                const mediaList =
+                    clickedKind === "pdf"
+                        ? [clicked]
+                        : messages.flatMap((m) =>
+                              m.deleted_at
+                                  ? []
+                                  : (m.attachments || []).filter(
+                                        (a) =>
+                                            ["image", "video"].includes(kindOf(a.file_type, a.file_name)) &&
+                                            hasDownloaded(
+                                                employeeId,
+                                                a.id,
+                                                Number(m.sender_employee_id) === Number(employeeId)
+                                            )
+                                    )
+                          );
+                return (
+                    <MediaLightbox
+                        items={mediaList.length ? mediaList : [clicked]}
+                        startId={clicked.id}
+                        currentId={employeeId}
+                        onClose={() => setMediaViewerAttachment(null)}
+                    />
+                );
+            })()}
 
             {forwardingMessage && (
                 <ForwardModal
@@ -4848,11 +5067,10 @@ const closeFullPicker = useCallback(() => {
                     currentConversationId={
                         selectedId
                     }
-                    onClose={() =>
-                        setForwardingMessage(
-                            null
-                        )
-                    }
+                    onClose={() => {
+                        forwardSuccessRef.current = null;
+                        setForwardingMessage(null);
+                    }}
                     onForward={forward}
                 />
             )}

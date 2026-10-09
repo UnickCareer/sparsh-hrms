@@ -1,6 +1,7 @@
 import pool from "../config/db.js";
 import fs from "node:fs";
 import { publishToConversation } from "../realtime/chat.realtime.js";
+import { attachPolls } from "./chat.polls.helper.js";
 
 // ============================================================
 // CHAT CONTROLLER
@@ -83,7 +84,7 @@ async function publishChatEvent(
 // SHARED MESSAGE SELECT
 // ============================================================
 
-async function getMessageById(
+export async function getMessageById(
     messageId,
     client = pool,
     viewerEmployeeId = null
@@ -208,6 +209,7 @@ async function getMessageById(
     message.reactions =
         reactionsResult.rows;
 
+    await attachPolls([message], viewerEmployeeId, client);
     return message;
 }
 
@@ -410,6 +412,7 @@ export async function getConversationById(req, res) {
                     e.full_name,
                     e.employee_code,
                     e.email,
+                    e.phone,
                     e.department,
                     e.designation,
                     e.avatar
@@ -1115,6 +1118,12 @@ export async function getMessages(req, res) {
             WHERE
                 m.conversation_id = $1
 
+                AND NOT EXISTS (
+                    SELECT 1 FROM chat_hidden_messages hm
+                    WHERE hm.message_id = m.id
+                      AND hm.employee_id = $2
+                )
+
                 AND m.created_at >
                     COALESCE(
                         (
@@ -1138,6 +1147,8 @@ export async function getMessages(req, res) {
                 employeeId,
             ]
         );
+
+        await attachPolls(result.rows, employeeId);
 
         return res.json({
             success: true,
@@ -1744,6 +1755,11 @@ export async function deleteMessage(req, res) {
         const employeeId =
             Number(req.body.employeeId);
 
+        // "me"       -> hide only for this employee (any participant)
+        // "everyone" -> existing behaviour (sender only). Default.
+        const scope =
+            req.body.scope === "me" ? "me" : "everyone";
+
         if (
             !Number.isInteger(employeeId) ||
             employeeId <= 0
@@ -1800,6 +1816,37 @@ export async function deleteMessage(req, res) {
             });
         }
 
+        // ----------------------------------------------------
+        // DELETE FOR ME
+        // ----------------------------------------------------
+        if (scope === "me") {
+            await pool.query(
+                `
+                INSERT INTO chat_hidden_messages (
+                    message_id,
+                    employee_id
+                )
+                VALUES ($1, $2)
+                ON CONFLICT (message_id, employee_id)
+                DO NOTHING
+                `,
+                [
+                    existingMessage.id,
+                    employeeId,
+                ]
+            );
+
+            return res.json({
+                success: true,
+                scope: "me",
+                messageId:
+                    Number(existingMessage.id),
+            });
+        }
+
+        // ----------------------------------------------------
+        // DELETE FOR EVERYONE (unchanged behaviour)
+        // ----------------------------------------------------
         if (
             Number(
                 existingMessage.sender_employee_id
@@ -1859,6 +1906,7 @@ export async function deleteMessage(req, res) {
 
         return res.json({
             success: true,
+            scope: "everyone",
             message:
                 deletedMessage,
         });
@@ -2243,6 +2291,33 @@ export async function forwardMessage(req, res) {
 
             const forwardedMessageId =
                 insertResult.rows[0].id;
+
+                            // Copy attachment rows (same stored files, no re-upload) so forwarded
+            // photos/videos/documents keep their media.
+            await client.query(
+                `
+                INSERT INTO chat_message_attachments (
+                    message_id,
+                    file_name,
+                    file_url,
+                    file_type,
+                    file_size
+                )
+                SELECT
+                    $1,
+                    file_name,
+                    file_url,
+                    file_type,
+                    file_size
+                FROM chat_message_attachments
+                WHERE message_id = $2
+                ORDER BY id ASC
+                `,
+                [
+                    forwardedMessageId,
+                    originalMessage.id,
+                ]
+            );
 
             await client.query(
                 `
@@ -2805,6 +2880,36 @@ export async function reactToMessage(
                 message:
                     "Cannot react to a deleted message",
             });
+        }
+
+                if (message.deleted_at) {
+            // A deleted message cannot receive NEW reactions, but a person
+            // must still be able to REMOVE their own existing reaction.
+            const ownReaction =
+                await client.query(
+                    `
+                    SELECT 1
+                    FROM chat_message_reactions
+                    WHERE
+                        message_id = $1
+                        AND employee_id = $2
+                        AND reaction = $3
+                    LIMIT 1
+                    `,
+                    [
+                        messageId,
+                        reactorId,
+                        cleanEmoji,
+                    ]
+                );
+
+            if (ownReaction.rows.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Cannot react to a deleted message",
+                });
+            }
         }
 
         await client.query("BEGIN");
@@ -3498,11 +3603,29 @@ export async function getPinnedMessages(
                 WHERE
                     p.conversation_id = $1
                     AND m.deleted_at IS NULL
+                    AND NOT EXISTS (
+                        SELECT 1 FROM chat_hidden_messages hm
+                        WHERE hm.message_id = m.id
+                          AND hm.employee_id = $2
+                    )
+                    AND m.created_at >
+                        COALESCE(
+                            (
+                                SELECT cp.cleared_at
+                                FROM chat_participants cp
+                                WHERE
+                                    cp.conversation_id = $1
+                                    AND cp.employee_id = $2
+                                    AND cp.participant_status = 'active'
+                                LIMIT 1
+                            ),
+                            TO_TIMESTAMP(0)
+                        )
 
                 ORDER BY
                     p.pinned_at DESC
                 `,
-                [conversationId]
+                [conversationId, employeeId]
             );
 
         return res.json({
@@ -3596,6 +3719,11 @@ export async function getStarredMessages(
                 WHERE
                     s.employee_id = $1
                     AND m.deleted_at IS NULL
+                    AND NOT EXISTS (
+                        SELECT 1 FROM chat_hidden_messages hm
+                        WHERE hm.message_id = m.id
+                          AND hm.employee_id = $1
+                    )
                     AND EXISTS (
                         SELECT 1
                         FROM chat_participants cp
@@ -4013,6 +4141,502 @@ function getAttachmentMessageType(file) {
     return "file";
 }
 
+
+
+// ============================================================
+// CHAT INFO CONTENT
+// ============================================================
+
+async function fetchConversationInfoContent(conversationId, employeeId) {
+    const attachmentResult = await pool.query(
+        `
+        SELECT
+            a.id,
+            a.message_id,
+            a.file_name,
+            a.file_url,
+            a.file_type,
+            a.file_size,
+            a.created_at,
+            m.created_at AS message_created_at,
+            m.sender_employee_id,
+            e.full_name AS sender_name
+        FROM chat_message_attachments a
+        INNER JOIN chat_messages m
+            ON m.id = a.message_id
+        INNER JOIN employees e
+            ON e.id = m.sender_employee_id
+        WHERE
+            m.conversation_id = $1
+            AND m.deleted_at IS NULL
+            AND NOT EXISTS (
+                SELECT 1 FROM chat_hidden_messages hm
+                WHERE hm.message_id = m.id
+                AND hm.employee_id = $2 
+            )  
+            ORDER BY a.created_at DESC, a.id DESC
+                -- N = the parameter that holds the viewer's employee id
+        `,
+        [conversationId, employeeId]
+    );
+
+    const media = [];
+    const documents = [];
+
+    for (const item of attachmentResult.rows) {
+        const type = String(item.file_type || "").toLowerCase();
+        const name = String(item.file_name || "").toLowerCase();
+        const isImage =
+            type.startsWith("image/") ||
+            /\.(png|jpe?g|gif|webp|bmp|svg|heic|heif)$/i.test(name);
+        const isVideo =
+            type.startsWith("video/") ||
+            /\.(mp4|webm|mov|m4v|avi|mkv)$/i.test(name);
+
+        if (isImage || isVideo) {
+            media.push(item);
+        } else {
+            documents.push(item);
+        }
+    }
+
+    const linksResult = await pool.query(
+        `
+        SELECT
+            m.id,
+            m.conversation_id,
+            m.message,
+            m.sender_employee_id,
+            m.created_at,
+            e.full_name AS sender_name
+        FROM chat_messages m
+        INNER JOIN employees e
+            ON e.id = m.sender_employee_id
+        WHERE
+            m.conversation_id = $1
+            AND m.deleted_at IS NULL
+            AND NOT EXISTS (
+                SELECT 1 FROM chat_hidden_messages hm
+                WHERE hm.message_id = m.id
+                  AND hm.employee_id = $2
+            )
+            AND m.message ~* '(https?://|www\\.)'
+        ORDER BY m.created_at DESC, m.id DESC
+        `,
+        [conversationId, employeeId]
+    );
+
+    const starredResult = await pool.query(
+        `
+        SELECT
+            s.id,
+            s.message_id,
+            s.employee_id,
+            s.starred_at,
+            m.conversation_id,
+            m.sender_employee_id,
+            m.message,
+            m.message_type,
+            m.created_at,
+            e.full_name AS sender_name
+        FROM chat_starred_messages s
+        INNER JOIN chat_messages m
+            ON m.id = s.message_id
+        INNER JOIN employees e
+            ON e.id = m.sender_employee_id
+                WHERE
+            s.employee_id = $2
+            AND m.conversation_id = $1
+            AND m.deleted_at IS NULL
+            AND NOT EXISTS (
+                SELECT 1 FROM chat_hidden_messages hm
+                WHERE hm.message_id = m.id
+                  AND hm.employee_id = $2
+            )
+        ORDER BY s.starred_at DESC, s.id DESC
+        `,
+        [conversationId, employeeId]
+    );
+
+    return {
+        media,
+        documents,
+        links: linksResult.rows,
+        starred: starredResult.rows,
+    };
+}
+
+export async function getConversationInfoContent(req, res) {
+    try {
+        const conversationId = Number(req.params.id);
+        const employeeId = Number(req.query.employeeId);
+
+        if (
+            !Number.isInteger(conversationId) ||
+            conversationId <= 0 ||
+            !Number.isInteger(employeeId) ||
+            employeeId <= 0
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Valid conversation and employee IDs are required",
+            });
+        }
+
+        const participant = await verifyConversationParticipant(
+            employeeId,
+            conversationId
+        );
+
+        if (!participant) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not a participant of this conversation",
+            });
+        }
+
+        const content = await fetchConversationInfoContent(
+            conversationId,
+            employeeId
+        );
+
+        return res.json({
+            success: true,
+            ...content,
+        });
+    } catch (error) {
+        console.error("Get chat info content error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to load chat information",
+        });
+    }
+}
+
+// ============================================================
+// PERSON INFO / COMMON GROUPS
+// ============================================================
+
+export async function getPersonChatInfo(req, res) {
+    try {
+        const personId = Number(req.params.employeeId);
+        const employeeId = Number(req.query.employeeId);
+
+        if (
+            !Number.isInteger(personId) ||
+            personId <= 0 ||
+            !Number.isInteger(employeeId) ||
+            employeeId <= 0
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Valid employee IDs are required",
+            });
+        }
+
+        const personResult = await pool.query(
+            `
+            SELECT
+                id,
+                employee_code,
+                first_name,
+                last_name,
+                full_name,
+                email,
+                phone,
+                department,
+                designation,
+                avatar,
+                status
+            FROM employees
+            WHERE id = $1
+            LIMIT 1
+            `,
+            [personId]
+        );
+
+        if (!personResult.rows.length) {
+            return res.status(404).json({
+                success: false,
+                message: "Employee not found",
+            });
+        }
+
+        const accessResult = await pool.query(
+            `
+            SELECT 1
+            FROM chat_participants me
+            INNER JOIN chat_participants them
+                ON them.conversation_id = me.conversation_id
+            INNER JOIN chat_conversations c
+                ON c.id = me.conversation_id
+            WHERE
+                me.employee_id = $1
+                AND me.participant_status = 'active'
+                AND them.employee_id = $2
+                AND them.participant_status = 'active'
+                AND (
+                    c.conversation_type = 'direct'
+                    OR c.conversation_type = 'group'
+                )
+            LIMIT 1
+            `,
+            [employeeId, personId]
+        );
+
+        if (!accessResult.rows.length) {
+            return res.status(403).json({
+                success: false,
+                message: "You cannot view this person's chat information",
+            });
+        }
+
+        const directResult = await pool.query(
+            `
+            SELECT
+                c.id,
+                c.created_at,
+                EXISTS (
+                    SELECT 1
+                    FROM chat_messages m
+                    WHERE m.conversation_id = c.id
+                    AND NOT EXISTS (
+                        SELECT 1 FROM chat_hidden_messages hm
+                        WHERE hm.message_id = m.id
+                        AND hm.employee_id = $2   -- N = the parameter that holds the viewer's employee id
+                    )
+                ) AS has_messages
+            FROM chat_conversations c
+            INNER JOIN chat_participants p1
+                ON p1.conversation_id = c.id
+                AND p1.employee_id = $1
+                AND p1.participant_status = 'active'
+            INNER JOIN chat_participants p2
+                ON p2.conversation_id = c.id
+                AND p2.employee_id = $2
+                AND p2.participant_status = 'active'
+            WHERE c.conversation_type = 'direct'
+            ORDER BY c.id DESC
+            LIMIT 1
+            `,
+            [employeeId, personId]
+        );
+
+        const directConversation = directResult.rows[0] || null;
+        let content = {
+            media: [],
+            documents: [],
+            links: [],
+            starred: [],
+        };
+
+        if (directConversation) {
+            content = await fetchConversationInfoContent(
+                directConversation.id,
+                employeeId
+            );
+        }
+
+        const commonGroupsResult = await pool.query(
+            `
+            SELECT
+                c.id,
+                c.title,
+                c.avatar,
+                c.description
+            FROM chat_conversations c
+            INNER JOIN chat_participants me
+                ON me.conversation_id = c.id
+                AND me.employee_id = $1
+                AND me.participant_status = 'active'
+            INNER JOIN chat_participants them
+                ON them.conversation_id = c.id
+                AND them.employee_id = $2
+                AND them.participant_status = 'active'
+            WHERE c.conversation_type = 'group'
+            ORDER BY c.title NULLS LAST, c.id
+            `,
+            [employeeId, personId]
+        );
+
+        return res.json({
+            success: true,
+            person: personResult.rows[0],
+            directConversation: directConversation
+                ? {
+                    ...directConversation,
+                    id: Number(directConversation.id),
+                    hasMessages: Boolean(directConversation.has_messages),
+                }
+                : null,
+            starredCount: content.starred.length,
+            ...content,
+            commonGroups: commonGroupsResult.rows.map((group) => ({
+                ...group,
+                id: Number(group.id),
+            })),
+        });
+    } catch (error) {
+        console.error("Get person chat info error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to load person information",
+        });
+    }
+}
+
+// ============================================================
+// ADD GROUP PARTICIPANT
+// ============================================================
+
+export async function addGroupParticipant(req, res) {
+    const client = await pool.connect();
+    let transactionStarted = false;
+
+    try {
+        const conversationId = Number(req.params.id);
+        const employeeId = Number(req.body.employeeId);
+        const participantEmployeeId = Number(req.body.participantEmployeeId);
+
+        if (
+            !Number.isInteger(conversationId) ||
+            conversationId <= 0 ||
+            !Number.isInteger(employeeId) ||
+            employeeId <= 0 ||
+            !Number.isInteger(participantEmployeeId) ||
+            participantEmployeeId <= 0
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Valid group and employee IDs are required",
+            });
+        }
+
+        const actor = await verifyConversationParticipant(
+            employeeId,
+            conversationId,
+            client
+        );
+
+        if (!actor || !["owner", "admin"].includes(actor.participant_role)) {
+            return res.status(403).json({
+                success: false,
+                message: "Only the group owner or admin can add people",
+            });
+        }
+
+        const groupResult = await client.query(
+            `
+            SELECT id, conversation_type
+            FROM chat_conversations
+            WHERE id = $1
+            LIMIT 1
+            `,
+            [conversationId]
+        );
+
+        if (
+            !groupResult.rows.length ||
+            groupResult.rows[0].conversation_type !== "group"
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Participants can only be added to group chats",
+            });
+        }
+
+        const employeeResult = await client.query(
+            `
+            SELECT id, full_name, avatar, phone, employee_code
+            FROM employees
+            WHERE id = $1
+            LIMIT 1
+            `,
+            [participantEmployeeId]
+        );
+
+        if (!employeeResult.rows.length) {
+            return res.status(404).json({
+                success: false,
+                message: "Employee not found",
+            });
+        }
+
+        const existing = await client.query(
+            `
+            SELECT id, participant_status
+            FROM chat_participants
+            WHERE conversation_id = $1
+              AND employee_id = $2
+            LIMIT 1
+            `,
+            [conversationId, participantEmployeeId]
+        );
+
+        await client.query("BEGIN");
+        transactionStarted = true;
+
+        if (existing.rows.length) {
+            if (existing.rows[0].participant_status === "active") {
+                await client.query("ROLLBACK");
+                transactionStarted = false;
+                return res.status(409).json({
+                    success: false,
+                    message: "Employee is already a group member",
+                });
+            }
+
+            await client.query(
+                `
+                UPDATE chat_participants
+                SET
+                    participant_status = 'active',
+                    deleted_chat_at = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $1
+                `,
+                [existing.rows[0].id]
+            );
+        } else {
+            await client.query(
+                `
+                INSERT INTO chat_participants (
+                    conversation_id,
+                    employee_id,
+                    participant_role,
+                    participant_status
+                )
+                VALUES ($1, $2, 'member', 'active')
+                `,
+                [conversationId, participantEmployeeId]
+            );
+        }
+
+        await client.query("COMMIT");
+        transactionStarted = false;
+
+        await publishChatEvent(conversationId, {
+            type: "conversation.participant.added",
+            employeeId: participantEmployeeId,
+        });
+
+        return res.status(201).json({
+            success: true,
+            participant: employeeResult.rows[0],
+        });
+    } catch (error) {
+        if (transactionStarted) {
+            await client.query("ROLLBACK");
+        }
+        console.error("Add group participant error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to add group participant",
+        });
+    } finally {
+        client.release();
+    }
+}
 
 // ============================================================
 // GET MESSAGE ATTACHMENTS

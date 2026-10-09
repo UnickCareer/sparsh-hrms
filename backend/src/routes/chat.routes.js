@@ -2,6 +2,7 @@ import express from "express";
 import pool from "../config/db.js";
 import { subscribeEmployee, publishToConversation } from "../realtime/chat.realtime.js";
 import { chatUpload } from "../middleware/chatUpload.js";
+import { createPoll, votePoll } from "../controllers/polls.controller.js";
 
 import {
     // ========================================================
@@ -58,7 +59,10 @@ import {
     // ========================================================
     getMessageAttachments,
     uploadMessageAttachments,
-    sendMessageWithAttachments
+    sendMessageWithAttachments,
+    getConversationInfoContent,
+    getPersonChatInfo,
+    addGroupParticipant
 } from "../controllers/chat.controller.js";
 
 
@@ -539,6 +543,25 @@ router.get(
     "/messages/:messageId/attachments",
     getMessageAttachments
 );
+
+router.get(
+    "/conversations/:id/info-content",
+    getConversationInfoContent
+);
+
+router.get(
+    "/people/:employeeId/info",
+    getPersonChatInfo
+);
+
+router.post(
+    "/conversations/:id/participants",
+    addGroupParticipant
+);
+
+router.post("/conversations/:id/polls", createPoll);
+router.post("/messages/:messageId/poll-vote", votePoll);
+
 
 
 export default router;

@@ -60,16 +60,30 @@ const allowedMimeTypes = new Set([
     "text/csv",
 ]);
 
+// Some browsers report code/text files with odd or empty MIME types
+// (e.g. a .js file), so documents are also accepted by extension.
+const allowedExtensions = new Set([
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".txt", ".csv", ".zip", ".rtf", ".odt", ".ods",
+    ".js", ".json", ".md",
+]);
+
+const blockedExtensions = new Set([
+    ".exe", ".bat", ".cmd", ".com", ".msi", ".scr", ".sh", ".ps1", ".vbs", ".jar", ".apk",
+]);
+
 const fileFilter = (req, file, cb) => {
-    if (!allowedMimeTypes.has(file.mimetype)) {
-        return cb(
-            new Error(
-                `Unsupported file type: ${file.mimetype}`
-            )
-        );
+    const ext = path.extname(file.originalname || "").toLowerCase();
+
+    if (blockedExtensions.has(ext)) {
+        return cb(new Error(`Unsupported file type: ${ext}`));
     }
 
-    cb(null, true);
+    if (allowedMimeTypes.has(file.mimetype) || allowedExtensions.has(ext)) {
+        return cb(null, true);
+    }
+
+    return cb(new Error(`Unsupported file type: ${file.mimetype}`));
 };
 
 export const chatUpload = multer({
