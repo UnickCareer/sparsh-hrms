@@ -65,6 +65,15 @@ import {
     addGroupParticipant
 } from "../controllers/chat.controller.js";
 
+import {
+    getChatPermissions,
+    removeGroupParticipant,
+    updateParticipantRole,
+    updateGroupInfo,
+    uploadGroupAvatar,
+    removeGroupAvatar,
+} from "../controllers/chat.group.controller.js";
+
 
 
 const router = express.Router();
@@ -558,6 +567,13 @@ router.post(
     "/conversations/:id/participants",
     addGroupParticipant
 );
+
+router.get("/permissions", getChatPermissions);
+router.patch("/conversations/:id", updateGroupInfo);
+router.post("/conversations/:id/avatar", chatUpload.single("avatar"), uploadGroupAvatar);
+router.delete("/conversations/:id/avatar", removeGroupAvatar);
+router.patch("/conversations/:id/participants/:participantId/role", updateParticipantRole);
+router.delete("/conversations/:id/participants/:participantId", removeGroupParticipant);
 
 router.post("/conversations/:id/polls", createPoll);
 router.post("/messages/:messageId/poll-vote", votePoll);

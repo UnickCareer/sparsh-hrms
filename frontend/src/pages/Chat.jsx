@@ -2336,6 +2336,7 @@ function Chat() {
     const [messageDeleteBusy, setMessageDeleteBusy] = useState(false);
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedMessageIds, setSelectedMessageIds] = useState([]);
+    const [isSystemAdmin, setIsSystemAdmin] = useState(false);
     const attachmentInputRef = useRef(null);
     const documentInputRef = useRef(null);
     const forwardSuccessRef = useRef(null);
@@ -2485,7 +2486,14 @@ function Chat() {
                 })
             );
 
-            return enriched;
+                return enriched.map((item) =>
+                item.conversation_type === "group" &&
+                item.displayAvatar &&
+                String(item.displayAvatar).startsWith("/uploads/") &&
+                !String(item.displayAvatar).includes("?")
+                    ? { ...item, displayAvatar: `${item.displayAvatar}?employeeId=${employeeId}` }
+                    : item
+            );
         },
         [employeeId]
     );
@@ -2717,6 +2725,22 @@ function Chat() {
     }, [fetchEmployees]);
 
     useEffect(() => {
+        if (!employeeId) return undefined;
+        let cancelled = false;
+        fetch(`/api/chat/permissions?employeeId=${employeeId}`)
+            .then((response) => response.json())
+            .then((data) => {
+                if (!cancelled && data.success) {
+                    setIsSystemAdmin(Boolean(data.isSystemAdmin));
+                }
+            })
+                .catch(() => {});
+            return () => {
+                cancelled = true;
+        };
+    }, [employeeId]);
+
+    useEffect(() => {
         if (employeeId) {
             loadConversations();
         }
@@ -2858,6 +2882,19 @@ function Chat() {
                       : null;
               })()
             : null);
+
+    const myParticipant = participants.find(
+        (person) => Number(person.employee_id) === Number(employeeId)
+    );
+    const myGroupRole = myParticipant?.participant_role || "member";
+    const isGroupChat = selectedConversation?.conversation_type === "group";
+    const isGroupStaff = ["owner", "super_admin", "admin"].includes(myGroupRole);
+    const composerLocked =
+        isGroupChat &&
+        Boolean(selectedConversation?.only_admins_can_message) &&
+        !isGroupStaff;
+    // direct chats: everyone can make polls; groups: staff only
+    const canCreatePoll = !isGroupChat || isGroupStaff;
 
     const conversationSearchResults = useMemo(() => {
         const query = conversationSearch.trim().toLowerCase();
@@ -3554,7 +3591,7 @@ const toggleMessageFlag = async (message, type) => {
     }, []);
 
     // Chat Info panel deleted messages via the existing DELETE endpoint -> sync local state
-        const handleInfoMessagesDeleted = useCallback(async (deleted = []) => {
+    const handleInfoMessagesDeleted = useCallback(async (deleted = []) => {
         if (!deleted.length) return;
 
         const everyoneMap = new Map();
@@ -3589,6 +3626,24 @@ const toggleMessageFlag = async (message, type) => {
         await loadStarredMessages();
         if (meIds.size && selectedId) await loadConversations(selectedId);
     }, [selectedId, loadPinnedMessages, loadStarredMessages, loadConversations]);
+
+    // Refresh conversation metadata (members + sidebar) without reloading messages
+    const refreshConversationMeta = useCallback(async () => {
+        if (!selectedId || !employeeId) return;
+        try {
+            const response = await fetch(
+                `/api/chat/conversations/${selectedId}?employeeId=${employeeId}`
+            );
+            const data = await response.json();
+            if (response.ok && data.success) {
+                setSelectedConversation(data.conversation);
+                setParticipants(data.participants || []);
+            }
+        } catch (error) {
+            console.error("Refresh conversation error:", error);
+        }
+        await loadConversations(selectedId);
+    }, [selectedId, employeeId, loadConversations]);
 
     /* =====================================================
        Q5 REPLY
@@ -4195,15 +4250,15 @@ const closeFullPicker = useCallback(() => {
                             <Star size={17} fill="currentColor" />
                         </button>
 
-                        <button
-                        onClick={() =>
-                            setNewGroupOpen(true)
-                                        }
-                        className="inline-flex items-center gap-2 rounded-xl   px-3.5 py-2.5 text-sm font-semibold text-gray-700  transition hover:-translate-y-0.5 hover:border-gray-300"
+                        {isSystemAdmin && (
+                                <button
+                                    onClick={() => setNewGroupOpen(true)}
+                                    className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-gray-700 transition hover:-translate-y-0.5 hover:border-gray-300"
+                                    title="New group"
                                 >
-                                <Users size={16} />
-                    
+                                    <Users size={16} />
                                 </button>
+                        )}
                                 {/* button group end */}
 
                                 <button
@@ -4629,6 +4684,10 @@ const closeFullPicker = useCallback(() => {
                                         <button type="button" disabled={!selectedMessageIds.length} onClick={forwardSelectedMessage} className="rounded-xl p-2.5 text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30" title="Forward"><Forward size={20}/></button>
                                     </div>
                                 </div>
+                            ) : composerLocked ? (
+                                <div className="flex min-h-[72px] items-center justify-center border-t border-gray-100 bg-white px-4 py-3 text-center text-xs font-medium text-gray-500">
+                                    Only admins can send messages in this group
+                                </div>
                             ) : (
                             <div className="border-t border-gray-100 bg-white p-3 md:p-4">
                                 {(replyingTo ||
@@ -4702,7 +4761,7 @@ const closeFullPicker = useCallback(() => {
                                                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 text-violet-500"><Paperclip size={18}/></span>
                                                     <span><span className="block text-sm font-semibold text-gray-800">Document</span><span className="block text-[11px] text-gray-400">PDF, Word, Excel and more</span></span>
                                                 </button>
-                                                {selectedConversation?.conversation_type === "group" && (
+                                                {canCreatePoll && (
                                                     <button type="button" onClick={() => handleAttachmentChoice("poll")} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-gray-50">
                                                         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-500"><BarChart3 size={18}/></span>
                                                         <span><span className="block text-sm font-semibold text-gray-800">Poll</span><span className="block text-[11px] text-gray-400">Ask the group a question</span></span>
@@ -4828,6 +4887,7 @@ const closeFullPicker = useCallback(() => {
                     participants={participants}
                     currentId={employeeId}
                     selectedDisplay={selectedDisplay}
+                    onGroupUpdated={refreshConversationMeta}
                     employees={employees}
                     onClose={() => setGroupInfoOpen(false)}
                     onRefreshConversation={() => loadMessages(selectedConversation.id)}

@@ -2,6 +2,7 @@ import pool from "../config/db.js";
 import fs from "node:fs";
 import { publishToConversation } from "../realtime/chat.realtime.js";
 import { attachPolls } from "./chat.polls.helper.js";
+import { checkCanPost, isSystemAdmin } from "./chat.permissions.js";
 
 // ============================================================
 // CHAT CONTROLLER
@@ -360,6 +361,7 @@ export async function getConversationById(req, res) {
                     c.last_message_at,
                     c.created_at,
                     c.updated_at,
+                    c.only_admins_can_message,
 
                     creator.full_name AS created_by_name,
 
@@ -429,8 +431,9 @@ export async function getConversationById(req, res) {
                 ORDER BY
                     CASE p.participant_role
                         WHEN 'owner' THEN 1
-                        WHEN 'admin' THEN 2
-                        ELSE 3
+                        WHEN 'super_admin' THEN 2
+                        WHEN 'admin' THEN 3
+                        ELSE 4
                     END,
                     e.full_name
                 `,
@@ -719,6 +722,13 @@ export async function createGroup(req, res) {
                 success: false,
                 message:
                     "Creator employee ID is required",
+            });
+        }
+
+        if (!(await isSystemAdmin(creatorId))) {
+            return res.status(403).json({
+                success: false,
+                message: "Only admins can create groups",
             });
         }
 
@@ -1407,6 +1417,14 @@ export async function sendMessage(req, res) {
             });
         }
 
+        const postCheck = await checkCanPost(id, senderId, client);
+        if (!postCheck.ok) {
+            return res.status(postCheck.status).json({
+                success: false,
+                message: postCheck.message,
+            });
+        }
+
         await client.query("BEGIN");
         transactionStarted = true;
 
@@ -2024,6 +2042,18 @@ export async function replyToMessage(req, res) {
             });
         }
 
+        const postCheck = await checkCanPost(
+            originalMessage.conversation_id,
+            senderId,
+            client
+        );
+        if (!postCheck.ok) {
+            return res.status(postCheck.status).json({
+                success: false,
+                message: postCheck.message,
+            });
+        }
+
         await client.query("BEGIN");
         transactionStarted = true;
 
@@ -2245,6 +2275,7 @@ export async function forwardMessage(req, res) {
         transactionStarted = true;
 
         const forwardedMessages = [];
+        let blockedByAdminOnly = false;
 
         for (
             const conversationId
@@ -2259,6 +2290,16 @@ export async function forwardMessage(req, res) {
 
             if (!destinationParticipant) {
                 continue;
+            }
+
+            const destinationCheck = await checkCanPost(
+                  conversationId,
+                  senderId,
+                  client
+            );
+              if (!destinationCheck.ok) {
+                  blockedByAdminOnly = true;
+                  continue;
             }
 
             const insertResult =
@@ -2367,8 +2408,9 @@ export async function forwardMessage(req, res) {
 
             return res.status(403).json({
                 success: false,
-                message:
-                    "You are not an active participant in any destination conversation",
+                message: blockedByAdminOnly
+                      ? "Only admins can send messages in the selected group"
+                      : "You are not an active participant in any destination conversation",
             });
         }
 
@@ -2874,15 +2916,15 @@ export async function reactToMessage(
             });
         }
 
-        if (message.deleted_at) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Cannot react to a deleted message",
-            });
-        }
+        // if (message.deleted_at) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message:
+        //             "Cannot react to a deleted message",
+        //     });
+        // }
 
-                if (message.deleted_at) {
+            if (message.deleted_at) {
             // A deleted message cannot receive NEW reactions, but a person
             // must still be able to REMOVE their own existing reaction.
             const ownReaction =
@@ -4403,8 +4445,7 @@ export async function getPersonChatInfo(req, res) {
                     AND NOT EXISTS (
                         SELECT 1 FROM chat_hidden_messages hm
                         WHERE hm.message_id = m.id
-                        AND hm.employee_id = $2   -- N = the parameter that holds the viewer's employee id
-                    )
+                        AND hm.employee_id = $1   
                 ) AS has_messages
             FROM chat_conversations c
             INNER JOIN chat_participants p1
@@ -4518,7 +4559,7 @@ export async function addGroupParticipant(req, res) {
             client
         );
 
-        if (!actor || !["owner", "admin"].includes(actor.participant_role)) {
+        if (!actor || !["owner", "super_admin", "admin"].includes(actor.participant_role)) {
             return res.status(403).json({
                 success: false,
                 message: "Only the group owner or admin can add people",
@@ -4591,6 +4632,7 @@ export async function addGroupParticipant(req, res) {
                 UPDATE chat_participants
                 SET
                     participant_status = 'active',
+                    participant_role = 'member',
                     deleted_chat_at = NULL,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = $1
@@ -4828,6 +4870,18 @@ export async function uploadMessageAttachments(
                 success: false,
                 message:
                     "You are not a participant of this conversation",
+            });
+        }
+
+        const postCheck = await checkCanPost(
+            message.conversation_id,
+            employeeId,
+            client
+        );
+        if (!postCheck.ok) {
+            return res.status(postCheck.status).json({
+                success: false,
+                message: postCheck.message,
             });
         }
 
@@ -5083,6 +5137,14 @@ export async function sendMessageWithAttachments(
                 success: false,
                 message:
                     "You are not a participant of this conversation",
+            });
+        }
+
+        const postCheck = await checkCanPost(id, employeeId, client);
+        if (!postCheck.ok) {
+            return res.status(postCheck.status).json({
+                success: false,
+                message: postCheck.message,
             });
         }
 

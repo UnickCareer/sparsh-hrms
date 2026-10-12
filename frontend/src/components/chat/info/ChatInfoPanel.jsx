@@ -19,6 +19,9 @@ import {
     UserPlus,
     Users,
     X,
+    Camera,
+    Lock,
+    MoreVertical,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import MediaLightbox from "../media/MediaLightbox";
@@ -477,6 +480,372 @@ function ConfirmDeleteDialog({ plan, busy, onCancel, onConfirm }) {
 }
 
 /* =========================================================
+   GROUP ROLES: chips, member menu, edit sheet
+========================================================= */
+
+const withEmployee = (url, employeeId) => {
+    if (!url) return null;
+    const value = String(url);
+    return value.startsWith("/uploads/") && !value.includes("?")
+        ? `${value}?employeeId=${employeeId}`
+        : value;
+};
+
+const ACTION_META = {
+    make_admin: { label: "Make admin", role: "admin" },
+    make_super_admin: { label: "Make Super Admin", role: "super_admin" },
+    demote_admin: { label: "Change to admin", role: "admin" },
+    demote_member: { label: "Make employee", role: "member" },
+    remove: { label: "Remove from group", danger: true },
+};
+
+// What the current member (actorRole) may do to another member (targetRole).
+// Mirrors canSetRole / canRemoveMember on the backend (the backend enforces it).
+function memberActions(actorRole, targetRole) {
+    const actions = [];
+    if (targetRole === "owner") return actions;
+    if (actorRole === "owner") {
+        if (targetRole === "member") actions.push("make_admin");
+        if (targetRole === "admin") actions.push("make_super_admin", "demote_member");
+        if (targetRole === "super_admin") actions.push("demote_admin", "demote_member");
+        actions.push("remove");
+    } else if (actorRole === "super_admin") {
+        if (targetRole === "member") actions.push("make_admin", "remove");
+        if (targetRole === "admin") actions.push("demote_member", "remove");
+    } else if (actorRole === "admin") {
+        if (targetRole === "member") actions.push("make_admin", "remove");
+    }
+    return actions;
+}
+
+function RoleChip({ role }) {
+    const label =
+        role === "owner" ? "Owner"
+        : role === "super_admin" ? "Super Admin"
+        : role === "admin" ? "Admin"
+        : "";
+    if (!label) return null; // plain members get no chip
+    const tone =
+        role === "owner" ? "bg-orange-100 text-orange-700"
+        : role === "super_admin" ? "bg-violet-100 text-violet-700"
+        : "bg-emerald-100 text-emerald-700";
+    return (
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${tone}`}>
+            {label}
+        </span>
+    );
+}
+
+function MemberMenu({ actions, busy, onAction }) {
+    const [open, setOpen] = useState(false);
+    const [pos, setPos] = useState(null);
+    const buttonRef = useRef(null);
+
+    useEffect(() => {
+        if (!open) return undefined;
+        const closeOutside = (event) => {
+            if (event.target instanceof Element && event.target.closest("[data-member-menu]")) return;
+            setOpen(false);
+        };
+        const closeNow = () => setOpen(false);
+        document.addEventListener("pointerdown", closeOutside);
+        window.addEventListener("scroll", closeNow, true);
+        window.addEventListener("resize", closeNow);
+        return () => {
+            document.removeEventListener("pointerdown", closeOutside);
+            window.removeEventListener("scroll", closeNow, true);
+            window.removeEventListener("resize", closeNow);
+        };
+    }, [open]);
+
+    const toggle = (event) => {
+        event.stopPropagation();
+        if (open) {
+            setOpen(false);
+            return;
+        }
+        const rect = buttonRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const width = 208;
+        const height = actions.length * 40 + 12;
+        const left = Math.min(Math.max(8, rect.right - width), window.innerWidth - width - 8);
+        const top =
+            rect.bottom + 4 + height > window.innerHeight
+                ? Math.max(8, rect.top - height - 4)
+                : rect.bottom + 4;
+        setPos({ top, left });
+        setOpen(true);
+    };
+
+    return (
+        <>
+            <button
+                ref={buttonRef}
+                type="button"
+                disabled={busy}
+                onClick={toggle}
+                title="Manage member"
+                aria-label="Manage member"
+                className="shrink-0 rounded-xl p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40"
+            >
+                <MoreVertical size={16} />
+            </button>
+            {open && pos && createPortal(
+                <div
+                    data-member-menu
+                    data-chat-overlay-root
+                    className="fixed z-[240] w-52 rounded-xl border border-gray-200 bg-white p-1.5 shadow-2xl animate-chat-pop"
+                    style={{ top: pos.top, left: pos.left }}
+                >
+                    {actions.map((action) => (
+                        <button
+                            key={action}
+                            type="button"
+                            onClick={() => {
+                                setOpen(false);
+                                onAction(action);
+                            }}
+                            className={`flex w-full items-center rounded-lg px-3 py-2.5 text-left text-xs font-semibold ${
+                                ACTION_META[action].danger
+                                    ? "text-red-600 hover:bg-red-50"
+                                    : "text-gray-700 hover:bg-gray-50"
+                            }`}
+                        >
+                            {ACTION_META[action].label}
+                        </button>
+                    ))}
+                </div>,
+                document.body
+            )}
+        </>
+    );
+}
+
+function ConfirmActionDialog({ plan, busy, onCancel, onConfirm }) {
+    if (!plan) return null;
+    return createPortal(
+        <div
+            data-chat-overlay-root
+            className="fixed inset-0 z-[230] flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-[2px] animate-chat-fade"
+        >
+            <div className="w-full max-w-[320px] overflow-hidden rounded-[28px] bg-white shadow-2xl animate-chat-modal">
+                <div className="px-6 pb-4 pt-7 text-center">
+                    <h3 className="text-[20px] font-medium tracking-tight text-gray-900">{plan.title}</h3>
+                    {plan.message && <p className="mt-2 text-xs leading-5 text-gray-500">{plan.message}</p>}
+                </div>
+                <div className="px-4 pb-3">
+                    <button
+                        type="button"
+                        onClick={onConfirm}
+                        disabled={busy}
+                        className="flex w-full items-center justify-center rounded-2xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                    >
+                        {busy ? "Please wait..." : plan.confirmLabel}
+                    </button>
+                </div>
+                <div className="px-4 pb-5">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        disabled={busy}
+                        className="flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-emerald-600 transition hover:bg-emerald-50 disabled:opacity-50"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+}
+
+function EditGroupSheet({ conversation, currentId, avatarSrc, onBack, onClose, onSaved }) {
+    const [title, setTitle] = useState(conversation.title || "");
+    const [description, setDescription] = useState(conversation.description || "");
+    const [onlyAdmins, setOnlyAdmins] = useState(Boolean(conversation.only_admins_can_message));
+    const [saving, setSaving] = useState(false);
+    const [photoBusy, setPhotoBusy] = useState(false);
+    const fileRef = useRef(null);
+
+    const uploadPhoto = async (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            toast.error("Choose an image file.");
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error("The photo must be 5 MB or smaller.");
+            return;
+        }
+        setPhotoBusy(true);
+        try {
+            const form = new FormData();
+            form.append("employeeId", String(currentId));
+            form.append("avatar", file);
+            const response = await fetch(`/api/chat/conversations/${conversation.id}/avatar`, {
+                method: "POST",
+                body: form,
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || "Could not update the photo");
+            toast.success("Group photo updated");
+            await onSaved?.();
+        } catch (error) {
+            toast.error(error.message || "Could not update the photo");
+        } finally {
+            setPhotoBusy(false);
+        }
+    };
+
+    const removePhoto = async () => {
+        setPhotoBusy(true);
+        try {
+            const response = await fetch(`/api/chat/conversations/${conversation.id}/avatar`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ employeeId: currentId }),
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || "Could not remove the photo");
+            toast.success("Group photo removed");
+            await onSaved?.();
+        } catch (error) {
+            toast.error(error.message || "Could not remove the photo");
+        } finally {
+            setPhotoBusy(false);
+        }
+    };
+
+    const save = async () => {
+        const name = title.trim();
+        if (!name) {
+            toast.error("Group name is required.");
+            return;
+        }
+        setSaving(true);
+        try {
+            const response = await fetch(`/api/chat/conversations/${conversation.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    employeeId: currentId,
+                    title: name,
+                    description: description.trim(),
+                    onlyAdminsCanMessage: onlyAdmins,
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || "Could not update the group");
+            toast.success("Group updated");
+            await onSaved?.();
+            onBack();
+        } catch (error) {
+            toast.error(error.message || "Could not update the group");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="absolute inset-0 z-[70] flex flex-col bg-white">
+            <Header title="Edit group" onBack={onBack} onClose={onClose} />
+            <div className="flex-1 overflow-y-auto p-5">
+                <div className="flex flex-col items-center">
+                    <div className="relative">
+                        <Avatar name={title || conversation.title} avatar={avatarSrc} size="lg" />
+                        <button
+                            type="button"
+                            disabled={photoBusy}
+                            onClick={() => fileRef.current?.click()}
+                            title="Change group photo"
+                            aria-label="Change group photo"
+                            className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-orange-500 text-white shadow-md transition hover:bg-orange-600 disabled:opacity-60"
+                        >
+                            {photoBusy ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+                        </button>
+                        <input
+                            ref={fileRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            className="hidden"
+                            onChange={uploadPhoto}
+                        />
+                    </div>
+                    {conversation.avatar && (
+                        <button
+                            type="button"
+                            disabled={photoBusy}
+                            onClick={removePhoto}
+                            className="mt-3 text-xs font-semibold text-red-500 hover:text-red-600 disabled:opacity-50"
+                        >
+                            Remove photo
+                        </button>
+                    )}
+                </div>
+
+                <label className="mt-6 block text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                    Group name
+                </label>
+                <input
+                    value={title}
+                    maxLength={100}
+                    onChange={(event) => setTitle(event.target.value)}
+                    className="mt-1.5 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100"
+                />
+
+                <label className="mt-5 block text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                    Description
+                </label>
+                <textarea
+                    value={description}
+                    maxLength={500}
+                    rows={4}
+                    onChange={(event) => setDescription(event.target.value)}
+                    placeholder="Add a group description"
+                    className="mt-1.5 w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100"
+                />
+
+                <div className="mt-5 flex items-center gap-3 rounded-2xl border border-gray-100 p-4">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-gray-800">Only admins can send messages</p>
+                        <p className="mt-0.5 text-[11px] leading-4 text-gray-400">
+                            When on, employees can still react and vote, but cannot send messages, files or polls.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={onlyAdmins}
+                        onClick={() => setOnlyAdmins((value) => !value)}
+                        className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+                            onlyAdmins ? "bg-orange-500" : "bg-gray-300"
+                        }`}
+                    >
+                        <span
+                            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                                onlyAdmins ? "left-[22px]" : "left-0.5"
+                            }`}
+                        />
+                    </button>
+                </div>
+
+                <button
+                    type="button"
+                    disabled={saving}
+                    onClick={save}
+                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:opacity-60"
+                >
+                    {saving && <Loader2 size={16} className="animate-spin" />}
+                    Save changes
+                </button>
+            </div>
+        </div>
+    );
+}
+
+/* =========================================================
    CHAT INFO PANEL
 ========================================================= */
 
@@ -493,6 +862,7 @@ export default function ChatInfoPanel({
     onForwardMessages,
     // ([{ id, message }]) -> lets Chat.jsx sync its own message list
     onMessagesDeleted,
+    onGroupUpdated,
 }) {
     const [view, setView] = useState("root");
     const [content, setContent] = useState(null);
@@ -507,6 +877,9 @@ export default function ChatInfoPanel({
     const [addSearch, setAddSearch] = useState("");
     const [addBusy, setAddBusy] = useState(false);
     const [mediaViewer, setMediaViewer] = useState(null);
+    const [editOpen, setEditOpen] = useState(false);
+    const [memberPlan, setMemberPlan] = useState(null);
+    const [memberBusy, setMemberBusy] = useState(false);
 
     // media selection
     const [mediaTab, setMediaTab] = useState("media");
@@ -873,12 +1246,49 @@ export default function ChatInfoPanel({
     const currentParticipant = participants.find(
         (person) => Number(person.employee_id) === Number(currentId)
     );
-    const canAddPerson =
-        isGroup &&
-        ["owner", "admin"].includes(currentParticipant?.participant_role);
+    const myRole = currentParticipant?.participant_role || "member";
+    const canEditGroup = isGroup && ["owner", "super_admin", "admin"].includes(myRole);
+    const canAddPerson = canEditGroup;
 
     const directConversationId = personInfo?.directConversation?.id || null;
     const personHasHistory = Boolean(personInfo?.directConversation?.hasMessages);
+
+    const runMemberAction = async (person, action) => {
+        if (memberBusy || !conversation?.id) return;
+        setMemberBusy(true);
+        try {
+            const base = `/api/chat/conversations/${conversation.id}/participants/${person.employee_id}`;
+            const response =
+                action === "remove"
+                    ? await fetch(base, {
+                          method: "DELETE",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ employeeId: currentId }),
+                      })
+                    : await fetch(`${base}/role`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ employeeId: currentId, role: ACTION_META[action].role }),
+                      });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || "Action failed");
+            toast.success(action === "remove" ? `${person.full_name} removed` : "Role updated");
+            setMemberPlan(null);
+            await onGroupUpdated?.();
+        } catch (error) {
+            toast.error(error.message || "Action failed");
+        } finally {
+            setMemberBusy(false);
+        }
+    };
+
+    const requestMemberAction = (person, action) => {
+        if (action === "remove") {
+            setMemberPlan({ person, action });
+            return;
+        }
+        runMemberAction(person, action);
+    };
 
     const addPerson = async (employee) => {
         if (!conversation?.id || !employee?.id) return;
@@ -902,7 +1312,7 @@ export default function ChatInfoPanel({
             toast.success(`${employee.full_name} added to the group`);
             setAddPersonOpen(false);
             setAddSearch("");
-            await onRefreshConversation?.();
+            await (onGroupUpdated || onRefreshConversation)?.();
         } catch (error) {
             toast.error(error.message || "Could not add employee");
         } finally {
@@ -1284,7 +1694,7 @@ export default function ChatInfoPanel({
                 <div className="flex flex-col items-center bg-gray-50 px-5 py-7 text-center">
                     <Avatar
                         name={isGroup ? conversation.title : selectedDisplay?.displayName}
-                        avatar={isGroup ? conversation.avatar : selectedDisplay?.displayAvatar}
+                        avatar={isGroup ? withEmployee(conversation.avatar, currentId) : selectedDisplay?.displayAvatar}
                         size="lg"
                     />
                     <p className="mt-3 text-lg font-bold text-gray-900">
@@ -1302,11 +1712,28 @@ export default function ChatInfoPanel({
 
                 {isGroup ? (
                     <>
-                        <div className="p-4">
+                       <div className="space-y-3 p-4">
                             <div className="rounded-2xl border border-gray-100 p-4">
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Description</p>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Description</p>
+                                    {canEditGroup && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setEditOpen(true)}
+                                            className="rounded-lg px-2 py-1 text-[11px] font-bold text-orange-500 hover:bg-orange-50"
+                                        >
+                                            Edit group
+                                        </button>
+                                    )}
+                                </div>
                                 <p className="mt-2 text-sm leading-6 text-gray-700">{conversation.description || "No description added."}</p>
                             </div>
+                            {conversation.only_admins_can_message && (
+                                <div className="flex items-center gap-2 rounded-2xl bg-orange-50 px-4 py-3 text-xs font-medium text-orange-700">
+                                    <Lock size={14} className="shrink-0" />
+                                    Only admins can send messages
+                                </div>
+                            )}
                         </div>
 
                         <div className="border-y border-gray-100 px-2 py-2">
@@ -1369,24 +1796,31 @@ export default function ChatInfoPanel({
                             )}
 
                             <div className="space-y-1">
-                                {filteredMembers.map((person) => (
-                                    <button
-                                        key={person.employee_id}
-                                        type="button"
-                                        onClick={() => loadPersonInfo(person.employee_id)}
-                                        className="flex w-full items-center gap-3 rounded-2xl p-2.5 text-left hover:bg-gray-50"
-                                    >
-                                        <Avatar name={person.full_name} avatar={person.avatar} size="sm" />
-                                        <span className="min-w-0 flex-1">
-                                            <span className="block truncate text-sm font-semibold text-gray-800">{person.full_name}</span>
-                                            {person.participant_role !== "member" && (
-                                                <span className="mt-0.5 block text-[10px] font-semibold text-orange-500">
-                                                    {person.participant_role === "owner" ? "Group owner" : "Group admin"}
-                                                </span>
-                                            )}
-                                        </span>
-                                    </button>
-                                ))}
+                            {filteredMembers.map((person) => {
+                                const role = person.participant_role;
+                                const isSelf = Number(person.employee_id) === Number(currentId);
+                                const actions = isSelf ? [] : memberActions(myRole, role);
+                                return (
+                                    <div key={person.employee_id} className="flex items-center gap-1 rounded-2xl pr-1 hover:bg-gray-50">
+                                        <button
+                                            type="button"
+                                            onClick={() => loadPersonInfo(person.employee_id)}
+                                            className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl p-2.5 text-left"
+                                        >
+                                            <Avatar name={person.full_name} avatar={person.avatar} size="sm" />
+                                            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-800">{person.full_name}</span>
+                                            <RoleChip role={role} />
+                                        </button>
+                                        {actions.length > 0 && (
+                                            <MemberMenu
+                                                actions={actions}
+                                                busy={memberBusy}
+                                                onAction={(action) => requestMemberAction(person, action)}
+                                            />
+                                        )}
+                                    </div>
+                                );
+                            })}
                             </div>
                         </div>
 
@@ -1425,6 +1859,30 @@ export default function ChatInfoPanel({
                                 </div>
                             </div>
                         )}
+
+                        {editOpen && canEditGroup && (
+                            <EditGroupSheet
+                                conversation={conversation}
+                                currentId={currentId}
+                                avatarSrc={withEmployee(conversation.avatar, currentId)}
+                                onBack={() => setEditOpen(false)}
+                                onClose={onClose}
+                                onSaved={onGroupUpdated}
+                            />
+                        )}
+
+                        <ConfirmActionDialog
+                            plan={
+                                memberPlan && {
+                                    title: `Remove ${memberPlan.person.full_name}?`,
+                                    message: "They will no longer be able to read or send messages in this group.",
+                                    confirmLabel: "Remove",
+                                }
+                            }
+                            busy={memberBusy}
+                            onCancel={() => setMemberPlan(null)}
+                            onConfirm={() => runMemberAction(memberPlan.person, "remove")}
+                        />
                     </>
                 ) : (
                     <div className="p-4">

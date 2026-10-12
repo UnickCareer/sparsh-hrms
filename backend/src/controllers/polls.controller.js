@@ -2,6 +2,7 @@ import pool from "../config/db.js";
 import { getMessageById } from "./chat.controller.js";
 import { attachPolls } from "./chat.polls.helper.js";
 import { publishToConversation } from "../realtime/chat.realtime.js";
+import { getMembership, isStaff } from "./chat.permissions.js";
 
 async function isActiveParticipant(client, employeeId, conversationId) {
     const r = await client.query(
@@ -35,6 +36,18 @@ export async function createPoll(req, res) {
         if (!(await isActiveParticipant(client, senderId, conversationId))) {
             return res.status(403).json({ success: false, message: "You are not a participant of this conversation" });
         }
+
+        const membership = await getMembership(conversationId, senderId, client);
+        if (
+            membership?.conversation_type === "group" &&
+            !isStaff(membership.participant_role)
+        ) {
+            return res.status(403).json({
+                success: false,
+                message: "Only admins can create polls in groups",
+            });
+        }
+
 
         await client.query("BEGIN");
         started = true;
