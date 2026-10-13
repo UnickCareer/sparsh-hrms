@@ -55,7 +55,7 @@ import PollComposer from "../components/chat/poll/PollComposer";
 import MediaComposer from "../components/chat/media/MediaComposer";
 import MediaLightbox from "../components/chat/media/MediaLightbox";
 import MessageAttachments from "../components/chat/media/MessageAttachments";
-import { hasDownloaded, kindOf } from "../components/chat/media/mediaUtils";
+import { attachmentUrl, hasDownloaded, kindOf } from "../components/chat/media/mediaUtils";
 import { splitMessageTextLinks } from "../utils/messageLinks";
 import ChatInfoPanel from "../components/chat/info/ChatInfoPanel";
 
@@ -2025,14 +2025,39 @@ function MessageBubble({
     };
 
     const copyMessage = async () => {
-        try {
-            await navigator.clipboard.writeText(message.message || "");
-            toast.success("Message copied");
+    try {
+        const image = (message.attachments || []).find(
+            (a) => kindOf(a.file_type, a.file_name) === "image"
+        );
+
+        // Image message → put the picture itself on the clipboard
+        if (image && navigator.clipboard?.write && window.ClipboardItem) {
+            const res = await fetch(attachmentUrl(image, currentId));
+            let blob = await res.blob();
+
+            // Most browsers only accept PNG on the clipboard, so convert JPEG/WebP
+            if (blob.type !== "image/png") {
+                const bitmap = await createImageBitmap(blob);
+                const canvas = document.createElement("canvas");
+                canvas.width = bitmap.width;
+                canvas.height = bitmap.height;
+                canvas.getContext("2d").drawImage(bitmap, 0, 0);
+                blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+            }
+
+            await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+            toast.success("Image copied");
             onToggleMenu?.(null);
-        } catch {
-            toast.error("Could not copy message");
+            return;
         }
-    };
+
+        await navigator.clipboard.writeText(message.message || "");
+        toast.success("Message copied");
+        onToggleMenu?.(null);
+    } catch {
+        toast.error("Could not copy");
+    }
+};
 
     const isPoll = message.message_type === "poll" && Boolean(message.poll) && !deleted;
 
@@ -4128,6 +4153,20 @@ const closeFullPicker = useCallback(() => {
         setAttachmentPreviewOpen(true);
     }, []);
 
+    const handleComposerPaste = useCallback((event) => {
+    const files = Array.from(event.clipboardData?.items || [])
+        .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+        .map((item) => item.getAsFile())
+        .filter(Boolean);
+
+    if (!files.length) return; // normal text paste continues as usual
+
+    event.preventDefault();
+    setPendingAttachments(files);
+    setAttachmentCaption("");
+    setAttachmentPreviewOpen(true);
+}, []);
+
     const submitPoll = useCallback(async () => {
         const question = pollQuestion.trim();
         const options = pollOptions.map((value) => value.trim()).filter(Boolean);
@@ -4888,6 +4927,7 @@ const closeFullPicker = useCallback(() => {
                                             onKeyDown={
                                                 handleComposerKeyDown
                                             }
+                                            onPaste={handleComposerPaste}
                                             rows={1}
                                             placeholder={
                                                 editingMessage
