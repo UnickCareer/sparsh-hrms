@@ -2224,12 +2224,14 @@ function MessageBubble({
                                 earlier lines use the full bubble width, while the final line naturally
                                 wraps before the timestamp/read-status when there is not enough room. */}
                             {!isPoll && (
-                            <MessageContent
-                                text={message.message}
-                                deleted={deleted}
-                                searchQuery={searchQuery}
-                                trailingMeta={renderMeta("translate-y-[6px]")}
-                            />
+                                <div className={message.attachments?.length ? "[contain:inline-size]" : ""}>
+                                    <MessageContent
+                                        text={message.message}
+                                        deleted={deleted}
+                                        searchQuery={searchQuery}
+                                        trailingMeta={renderMeta("translate-y-[6px]")}
+                                    />
+                                </div>
                             )}
 
                             {!selectionMode && ((menuOpen || pickerOpen) && createPortal(
