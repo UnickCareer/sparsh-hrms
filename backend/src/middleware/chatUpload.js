@@ -1,3 +1,9 @@
+/**
+ * chatUpload.js
+ *
+ * Backend module for HRMS application
+ */
+
 import multer from "multer";
 import path from "path";
 import fs from "fs";

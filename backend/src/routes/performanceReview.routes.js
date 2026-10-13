@@ -1,3 +1,9 @@
+/**
+ * performanceReview.routes.js
+ *
+ * Backend module for HRMS application
+ */
+
 import express from "express";
 
 import {
@@ -28,7 +34,6 @@ import {
 } from "../controllers/performanceReview.controller.js";
 
 const router = express.Router();
-
 
 // ============================================================
 // PERFORMANCE REVIEW NOTIFICATIONS
@@ -61,7 +66,6 @@ router.patch(
     "/notifications/:notificationId/read",
     markPerformanceNotificationRead
 );
-
 
 // ============================================================
 // PERFORMANCE APPROVALS
@@ -107,7 +111,6 @@ router.patch(
     processPerformanceApproval
 );
 
-
 // ============================================================
 // GET EMPLOYEE PERFORMANCE REVIEWS
 // ============================================================
@@ -122,7 +125,6 @@ router.get(
     "/my/:employeeId",
     getMyPerformanceReviews
 );
-
 
 // ============================================================
 // CREATE PERFORMANCE REVIEW
@@ -152,7 +154,6 @@ router.post(
     createPerformanceReview
 );
 
-
 // ============================================================
 // START PERFORMANCE REVIEW
 // ============================================================
@@ -179,7 +180,6 @@ router.patch(
     "/:reviewId/start",
     startPerformanceReview
 );
-
 
 // ============================================================
 // START SELF ASSESSMENT
@@ -211,7 +211,6 @@ router.patch(
     "/:reviewId/self-assessment",
     startSelfAssessment
 );
-
 
 // ============================================================
 // SUBMIT PERFORMANCE REVIEW
@@ -249,7 +248,6 @@ router.patch(
     submitPerformanceReview
 );
 
-
 // ============================================================
 // UPDATE PERFORMANCE GOAL
 // ============================================================
@@ -282,7 +280,6 @@ router.patch(
     updatePerformanceGoal
 );
 
-
 // ============================================================
 // UPDATE PERFORMANCE REVIEW
 // ============================================================
@@ -302,7 +299,6 @@ router.patch(
     "/:reviewId",
     updatePerformanceReview
 );
-
 
 // ============================================================
 // GET SINGLE PERFORMANCE REVIEW
@@ -331,7 +327,6 @@ router.get(
     "/:reviewId",
     getPerformanceReviewById
 );
-
 
 // ============================================================
 // EXPORT ROUTER

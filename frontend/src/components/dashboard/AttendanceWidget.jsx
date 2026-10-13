@@ -1,3 +1,9 @@
+/**
+ * AttendanceWidget.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import toast from "react-hot-toast";

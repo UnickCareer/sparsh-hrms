@@ -1,3 +1,9 @@
+/**
+ * LeaveRequestsPanel.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/dashboard/LeaveRequestsPanel.jsx
 import { useNavigate } from "react-router-dom";
 import { FileText } from "lucide-react";

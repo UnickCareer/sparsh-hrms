@@ -1,7 +1,12 @@
+/**
+ * itController.js
+ *
+ * Backend module for HRMS application
+ */
+
 // server/controllers/itController.js
 
 import pool from "../config/db.js";
-
 
 // ============================================================
 // HELPERS
@@ -20,7 +25,6 @@ function getEmployeeId(user) {
     );
 }
 
-
 function getEmployeeName(user) {
 
     if (!user) return "Employee";
@@ -33,7 +37,6 @@ function getEmployeeName(user) {
         "Employee"
     );
 }
-
 
 // ============================================================
 // TICKET NUMBER
@@ -63,7 +66,6 @@ async function generateTicketNumber() {
 
     return `TKT-${lastNumber + 1}`;
 }
-
 
 // ============================================================
 // NOTIFICATION
@@ -117,7 +119,6 @@ async function createNotification({
     );
 }
 
-
 // ============================================================
 // GET TICKETS
 // ============================================================
@@ -134,9 +135,7 @@ export async function getTickets(req, res) {
                 req.query.isAdmin
             ) === "true";
 
-
         let result;
-
 
         // ADMIN / HR / OWNER
         // See everything.
@@ -183,7 +182,6 @@ export async function getTickets(req, res) {
                 });
             }
 
-
             result =
                 await pool.query(
                     `
@@ -222,7 +220,6 @@ export async function getTickets(req, res) {
                 );
         }
 
-
         res.json({
             success: true,
             tickets: result.rows,
@@ -243,7 +240,6 @@ export async function getTickets(req, res) {
     }
 }
 
-
 // ============================================================
 // GET SINGLE TICKET
 // ============================================================
@@ -254,7 +250,6 @@ export async function getTicketById(req, res) {
 
         const { id } =
             req.params;
-
 
         const ticketResult =
             await pool.query(
@@ -289,7 +284,6 @@ export async function getTicketById(req, res) {
                 [id]
             );
 
-
         if (
             ticketResult.rows.length === 0
         ) {
@@ -300,7 +294,6 @@ export async function getTicketById(req, res) {
                     "Ticket not found",
             });
         }
-
 
         const updatesResult =
             await pool.query(
@@ -319,7 +312,6 @@ export async function getTicketById(req, res) {
                 `,
                 [id]
             );
-
 
         res.json({
 
@@ -349,7 +341,6 @@ export async function getTicketById(req, res) {
     }
 }
 
-
 // ============================================================
 // CREATE TICKET
 // ============================================================
@@ -372,7 +363,6 @@ export async function createTicket(req, res) {
             assigneeName,
         } = req.body;
 
-
         if (
             !requesterEmployeeId ||
             !requesterName
@@ -384,7 +374,6 @@ export async function createTicket(req, res) {
                     "Logged-in employee information is missing",
             });
         }
-
 
         if (
             !subject ||
@@ -398,10 +387,8 @@ export async function createTicket(req, res) {
             });
         }
 
-
         const ticketNumber =
             await generateTicketNumber();
-
 
         const result =
             await pool.query(
@@ -467,10 +454,8 @@ export async function createTicket(req, res) {
                 ]
             );
 
-
         const ticket =
             result.rows[0];
-
 
         // ====================================================
         // NOTIFY ASSIGNEE IMMEDIATELY
@@ -500,7 +485,6 @@ export async function createTicket(req, res) {
                     ticket.id,
             });
         }
-
 
         res.status(201).json({
 
@@ -532,7 +516,6 @@ export async function createTicket(req, res) {
     }
 }
 
-
 // ============================================================
 // UPDATE TICKET
 // ============================================================
@@ -552,7 +535,6 @@ export async function updateTicket(req, res) {
             currentUser,
         } = req.body;
 
-
         const oldResult =
             await pool.query(
                 `
@@ -562,7 +544,6 @@ export async function updateTicket(req, res) {
                 `,
                 [id]
             );
-
 
         if (
             oldResult.rows.length === 0
@@ -575,10 +556,8 @@ export async function updateTicket(req, res) {
             });
         }
 
-
         const oldTicket =
             oldResult.rows[0];
-
 
         const result =
             await pool.query(
@@ -620,16 +599,13 @@ export async function updateTicket(req, res) {
                 ]
             );
 
-
         const ticket =
             result.rows[0];
-
 
         const actor =
             getEmployeeName(
                 currentUser
             );
-
 
         // ====================================================
         // REASSIGNED
@@ -662,7 +638,6 @@ export async function updateTicket(req, res) {
             });
         }
 
-
         // ====================================================
         // STATUS CHANGED
         // NOTIFY REQUESTER
@@ -676,14 +651,12 @@ export async function updateTicket(req, res) {
             let title =
                 "IT Ticket Updated";
 
-
             if (
                 status === "Resolved"
             ) {
                 title =
                     "IT Ticket Resolved";
             }
-
 
             if (
                 status === "Closed"
@@ -692,14 +665,12 @@ export async function updateTicket(req, res) {
                     "IT Ticket Closed";
             }
 
-
             if (
                 status === "Reopened"
             ) {
                 title =
                     "IT Ticket Reopened";
             }
-
 
             if (
                 ticket.requester_employee_id &&
@@ -737,7 +708,6 @@ export async function updateTicket(req, res) {
             }
         }
 
-
         res.json({
 
             success: true,
@@ -768,7 +738,6 @@ export async function updateTicket(req, res) {
     }
 }
 
-
 // ============================================================
 // ADD UPDATE
 // ============================================================
@@ -789,7 +758,6 @@ export async function addTicketUpdate(
             authorName,
         } = req.body;
 
-
         if (
             !comment ||
             !comment.trim()
@@ -802,7 +770,6 @@ export async function addTicketUpdate(
             });
         }
 
-
         const ticketCheck =
             await pool.query(
                 `
@@ -812,7 +779,6 @@ export async function addTicketUpdate(
                 `,
                 [id]
             );
-
 
         if (
             ticketCheck.rows.length === 0
@@ -825,10 +791,8 @@ export async function addTicketUpdate(
             });
         }
 
-
         const ticket =
             ticketCheck.rows[0];
-
 
         const finalAuthorName =
             authorName ||
@@ -836,12 +800,10 @@ export async function addTicketUpdate(
                 currentUser
             );
 
-
         const authorEmployeeId =
             getEmployeeId(
                 currentUser
             );
-
 
         const result =
             await pool.query(
@@ -867,7 +829,6 @@ export async function addTicketUpdate(
                 ]
             );
 
-
         await pool.query(
             `
             UPDATE it_tickets
@@ -879,7 +840,6 @@ export async function addTicketUpdate(
             `,
             [id]
         );
-
 
         // ====================================================
         // REQUESTER WRITES
@@ -913,7 +873,6 @@ export async function addTicketUpdate(
             });
         }
 
-
         // ====================================================
         // ASSIGNEE WRITES
         // → NOTIFY REQUESTER
@@ -946,7 +905,6 @@ export async function addTicketUpdate(
             });
         }
 
-
         res.status(201).json({
 
             success: true,
@@ -977,7 +935,6 @@ export async function addTicketUpdate(
     }
 }
 
-
 // ============================================================
 // DELETE
 // ============================================================
@@ -992,7 +949,6 @@ export async function deleteTicket(
         const { id } =
             req.params;
 
-
         const result =
             await pool.query(
                 `
@@ -1005,7 +961,6 @@ export async function deleteTicket(
                 [id]
             );
 
-
         if (
             result.rows.length === 0
         ) {
@@ -1016,7 +971,6 @@ export async function deleteTicket(
                     "Ticket not found",
             });
         }
-
 
         res.json({
 
@@ -1045,7 +999,6 @@ export async function deleteTicket(
     }
 }
 
-
 // ============================================================
 // GET IT NOTIFICATIONS
 // ============================================================
@@ -1061,7 +1014,6 @@ export async function getITNotifications(
             employeeId,
         } = req.query;
 
-
         if (!employeeId) {
 
             return res.json({
@@ -1069,7 +1021,6 @@ export async function getITNotifications(
                 notifications: [],
             });
         }
-
 
         const result =
             await pool.query(
@@ -1102,7 +1053,6 @@ export async function getITNotifications(
                 [employeeId]
             );
 
-
         res.json({
 
             success: true,
@@ -1130,7 +1080,6 @@ export async function getITNotifications(
     }
 }
 
-
 // ============================================================
 // MARK IT NOTIFICATION READ
 // ============================================================
@@ -1144,7 +1093,6 @@ export async function markITNotificationRead(
 
         const { id } =
             req.params;
-
 
         await pool.query(
             `
@@ -1161,7 +1109,6 @@ export async function markITNotificationRead(
             `,
             [id]
         );
-
 
         res.json({
             success: true,

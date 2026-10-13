@@ -1,3 +1,9 @@
+/**
+ * MyAssetsPanel.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/dashboard/MyAssetsPanel.jsx
 import { Wrench } from "lucide-react";
 

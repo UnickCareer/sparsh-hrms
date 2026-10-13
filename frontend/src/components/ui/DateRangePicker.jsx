@@ -1,3 +1,9 @@
+/**
+ * DateRangePicker.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/ui/DateRangePicker.jsx
 import { useState, useRef, useEffect } from "react";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";

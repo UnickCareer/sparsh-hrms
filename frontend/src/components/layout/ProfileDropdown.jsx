@@ -1,3 +1,9 @@
+/**
+ * ProfileDropdown.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/layout/ProfileDropdown.jsx
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";

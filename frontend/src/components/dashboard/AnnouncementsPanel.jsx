@@ -1,3 +1,9 @@
+/**
+ * AnnouncementsPanel.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/dashboard/AnnouncementsPanel.jsx
 import { useOutletContext } from "react-router-dom";
 

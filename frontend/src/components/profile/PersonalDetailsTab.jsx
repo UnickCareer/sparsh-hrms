@@ -1,3 +1,9 @@
+/**
+ * PersonalDetailsTab.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/profile/PersonalDetailsTab.jsx
 import { User2, MapPin, Briefcase, Users, Landmark, Phone } from "lucide-react";
 

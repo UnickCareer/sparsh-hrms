@@ -1,3 +1,9 @@
+/**
+ * PollMessage.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // frontend/src/components/chat/poll/PollMessage.jsx
 //
 // Poll inside a chat bubble (WhatsApp style):

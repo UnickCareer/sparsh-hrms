@@ -1,3 +1,9 @@
+/**
+ * chat.group.controller.js
+ *
+ * Enterprise-grade chat component/module.
+ */
+
 // Group management endpoints: permissions, remove member, change role,
 // edit group info, group photo.
 import pool from "../config/db.js";
@@ -13,6 +19,11 @@ import {
 
 const validId = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
 
+/**
+ * Publish group event to conversation
+ * @param {number} conversationId - Conversation ID
+ * @param {object} event - Event payload
+ */
 async function publish(conversationId, event) {
     try {
         await publishToConversation(Number(conversationId), {
@@ -24,6 +35,10 @@ async function publish(conversationId, event) {
     }
 }
 
+/**
+ * Remove uploaded avatar file
+ * @param {object} file - Uploaded file object
+ */
 function removeUploadedFile(file) {
     try {
         if (file?.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
@@ -34,6 +49,14 @@ function removeUploadedFile(file) {
 
 // Validates ids + membership + group type. Sends the error response itself
 // and returns null when the request must stop.
+/**
+ * Require valid group actor with permissions
+ * Validates actor membership and group type.
+ * @param {object} res - Express response
+ * @param {number} conversationId - Conversation ID
+ * @param {number} actorId - Actor employee ID
+ * @returns {Promise<object|null>} Membership or null if invalid
+ */
 async function requireGroupActor(res, conversationId, actorId) {
     if (!validId(conversationId) || !validId(actorId)) {
         res.status(400).json({
@@ -60,6 +83,11 @@ async function requireGroupActor(res, conversationId, actorId) {
     return membership;
 }
 
+/**
+ * Load conversation details
+ * @param {number} conversationId - Conversation ID
+ * @returns {Promise<object|null>} Conversation object
+ */
 async function loadConversation(conversationId) {
     const result = await pool.query(
         `

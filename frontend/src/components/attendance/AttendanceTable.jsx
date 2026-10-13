@@ -1,3 +1,9 @@
+/**
+ * AttendanceTable.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/attendance/AttendanceTable.jsx
 // src/components/attendance/AttendanceTable.jsx
 const STANDARD_IN = 9 * 60 + 30;

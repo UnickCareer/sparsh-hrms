@@ -1,3 +1,9 @@
+/**
+ * mediaUtils.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // frontend/src/components/chat/media/mediaUtils.jsx
 import { useSyncExternalStore } from "react";
 import toast from "react-hot-toast";

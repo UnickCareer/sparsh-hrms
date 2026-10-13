@@ -1,3 +1,9 @@
+/**
+ * QRCodeTab.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/profile/QRCodeTab.jsx
 import { QrCode, Download } from "lucide-react";
 

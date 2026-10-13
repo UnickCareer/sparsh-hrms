@@ -1,3 +1,9 @@
+/**
+ * MediaLightbox.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // frontend/src/components/chat/media/MediaLightbox.jsx
 //
 // Opens photos / videos / PDFs in the same window.

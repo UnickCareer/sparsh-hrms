@@ -1,3 +1,9 @@
+/**
+ * Tasks.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/pages/Tasks.jsx
 import { useState, useEffect } from "react";
 import { useOutletContext, useLocation, useNavigate } from "react-router-dom";

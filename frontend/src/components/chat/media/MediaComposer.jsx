@@ -1,3 +1,9 @@
+/**
+ * MediaComposer.jsx
+ *
+ * Enterprise-grade chat component/module.
+ */
+
 // frontend/src/components/chat/media/MediaComposer.jsx
 //
 // WhatsApp-style "preview before sending" screen.
@@ -38,7 +44,15 @@ import toast from "react-hot-toast";
 import ImageEditorStage, { DOODLE_COLORS } from "./ImageEditorStage";
 import { FileExtIcon, formatSize, getExt, kindOf } from "./mediaUtils";
 
+/**
+ * Global counter for unique item IDs
+ */
 let idCounter = 0;
+/**
+ * Create media item object
+ * @param {File} file - Media file
+ * @returns {object} Media item
+ */
 const makeItem = (file) => ({
     id: ++idCounter,
     file,
@@ -47,6 +61,12 @@ const makeItem = (file) => ({
 
 /* Creates a blob URL for `file` and revokes it when the file changes or the
    component unmounts. Returns null until the URL exists (first render). */
+/**
+ * Custom hook to create and revoke object URLs
+ * Manages blob URL lifecycle for media files.
+ * @param {File|null} file - Media file
+ * @returns {string|null} Object URL
+ */
 function useObjectUrl(file) {
     const [url, setUrl] = useState(null);
 
@@ -63,6 +83,11 @@ function useObjectUrl(file) {
     return url;
 }
 
+/**
+ * Save blob locally
+ * Triggers file download for processed media.
+ * @param {File} file - Media file
+ */
 function saveBlobLocally(file) {
     const href = URL.createObjectURL(file);
     const a = document.createElement("a");
@@ -74,6 +99,10 @@ function saveBlobLocally(file) {
     setTimeout(() => URL.revokeObjectURL(href), 1000);
 }
 
+/**
+ * Tool button component for media editor
+ * @param {object} props - Component props
+ */
 function ToolButton({ title, onClick, active = false, children, accent = false }) {
     return (
         <button
@@ -95,6 +124,10 @@ function ToolButton({ title, onClick, active = false, children, accent = false }
 }
 
 /* One small preview box in the thumbnail strip. Owns its own blob URL. */
+/**
+ * Thumbnail component for media preview strip
+ * @param {object} props - Component props
+ */
 function Thumb({ item, selected, onSelect, onRemove }) {
     const itemKind = kindOf(item.file.type, item.file.name);
     const url = useObjectUrl(
@@ -156,7 +189,7 @@ export default function MediaComposer({
     initialFiles,
     onClose,
     onSend,
-    busy = false,
+        busy = false,
     EmojiPicker = null,
     container = null,
 }) {

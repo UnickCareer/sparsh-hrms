@@ -1,3 +1,9 @@
+/**
+ * Visitors.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/pages/Visitors.jsx
 
 import { useState } from "react";

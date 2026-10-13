@@ -1,3 +1,9 @@
+/**
+ * performanceReview.controller.js
+ *
+ * Backend module for HRMS application
+ */
+
 import pool from "../config/db.js";
 
 // ============================================================
@@ -53,7 +59,6 @@ const REVIEW_SELECT = `
     JOIN performance_cycles pc
         ON pr.cycle_id = pc.id
 `;
-
 
 // ============================================================
 // Helper: Create notification
@@ -135,7 +140,6 @@ const createNotification = async (
     return result.rows[0];
 };
 
-
 // ============================================================
 // Helper: Get performance approvers
 // ============================================================
@@ -168,7 +172,6 @@ const getPerformanceApprovers = async (client) => {
 
     return result.rows;
 };
-
 
 // ============================================================
 // Helper: Notify all performance approvers
@@ -231,7 +234,6 @@ const notifyPerformanceApprovers = async (
     return notifications;
 };
 
-
 // ============================================================
 // GET MY PERFORMANCE REVIEWS
 // GET /api/performance-reviews/my/:employeeId
@@ -282,7 +284,6 @@ export const getMyPerformanceReviews = async (
         });
     }
 };
-
 
 // ============================================================
 // GET SINGLE PERFORMANCE REVIEW
@@ -338,7 +339,6 @@ export const getPerformanceReviewById = async (
         });
     }
 };
-
 
 // ============================================================
 // CREATE PERFORMANCE REVIEW
@@ -646,7 +646,6 @@ export const createPerformanceReview = async (
     }
 };
 
-
 // ============================================================
 // START PERFORMANCE REVIEW
 // PATCH /api/performance-reviews/:reviewId/start
@@ -883,7 +882,6 @@ export const startPerformanceReview = async (
     }
 };
 
-
 // ============================================================
 // UPDATE PERFORMANCE REVIEW
 // PATCH /api/performance-reviews/:reviewId
@@ -1090,7 +1088,6 @@ export const updatePerformanceReview = async (
         client.release();
     }
 };
-
 
 // ============================================================
 // UPDATE PERFORMANCE GOAL
@@ -1348,7 +1345,6 @@ export const updatePerformanceGoal = async (
         });
     }
 };
-
 
 // ============================================================
 // MOVE GOALS → SELF ASSESSMENT
@@ -1625,7 +1621,6 @@ export const startSelfAssessment = async (
         client.release();
     }
 };
-
 
 // ============================================================
 // SUBMIT PERFORMANCE REVIEW
@@ -1993,7 +1988,6 @@ export const submitPerformanceReview = async (
     }
 };
 
-
 // ============================================================
 // GET PERFORMANCE APPROVALS
 // GET /api/performance-reviews/approvals
@@ -2039,7 +2033,6 @@ export const getPerformanceApprovals = async (
         });
     }
 };
-
 
 // ============================================================
 // GET PERFORMANCE APPROVAL DETAIL
@@ -2099,7 +2092,6 @@ export const getPerformanceApprovalDetail =
             });
         }
     };
-
 
 // ============================================================
 // PROCESS PERFORMANCE APPROVAL
@@ -2578,7 +2570,6 @@ const approverResult =
         }
     };
 
-
 // ============================================================
 // GET PERFORMANCE NOTIFICATIONS
 //
@@ -2743,7 +2734,6 @@ export const getPerformanceNotifications =
             });
         }
     };
-
 
 // ============================================================
 // MARK PERFORMANCE NOTIFICATION AS READ

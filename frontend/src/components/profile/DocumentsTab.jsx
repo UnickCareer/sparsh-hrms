@@ -1,3 +1,9 @@
+/**
+ * DocumentsTab.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/profile/DocumentsTab.jsx
 import { FileSpreadsheet, FileText, Download } from "lucide-react";
 

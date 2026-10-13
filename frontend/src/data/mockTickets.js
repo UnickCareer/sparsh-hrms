@@ -1,3 +1,9 @@
+/**
+ * mockTickets.js
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/data/mockTickets.js
 
 const mockTickets = [

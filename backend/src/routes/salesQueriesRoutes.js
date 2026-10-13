@@ -1,3 +1,9 @@
+/**
+ * salesQueriesRoutes.js
+ *
+ * Backend module for HRMS application
+ */
+
 // routes/salesQueriesRoutes.js
 
 import express from "express";

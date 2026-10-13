@@ -1,3 +1,9 @@
+/**
+ * Leaves.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/pages/Leaves.jsx
 import { useState, useEffect } from "react";
 import { useOutletContext, useLocation, useNavigate } from "react-router-dom";

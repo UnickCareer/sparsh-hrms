@@ -1,3 +1,9 @@
+/**
+ * MessageAttachments.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // frontend/src/components/chat/media/MessageAttachments.jsx
 //
 // Renders attachments inside a chat bubble.

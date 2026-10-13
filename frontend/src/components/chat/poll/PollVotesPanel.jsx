@@ -1,3 +1,9 @@
+/**
+ * PollVotesPanel.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // frontend/src/components/chat/poll/PollVotesPanel.jsx
 //
 // Right-hand "View votes" panel. One header per option with a single chip showing

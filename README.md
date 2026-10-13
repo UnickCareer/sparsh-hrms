@@ -1,5 +1,13 @@
 # Sparsh HRMS
 
+/**
+ * README.md
+ *
+ * HRMS application module
+ */
+
+# Sparsh HRMS
+
 **Sparsh HRMS (Human Resource Management System)** is a modern, full-stack Human Resource Management platform designed to centralize employee information, attendance, leave management, tasks, visitors, sales queries, IT support, performance reviews, notifications, and internal communication within a unified web application.
 
 The system is developed and maintained locally on **Ubuntu 20.04 LTS**, with a React-based frontend, Node.js/Express backend, and PostgreSQL database.

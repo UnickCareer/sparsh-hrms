@@ -1,3 +1,9 @@
+/**
+ * pollUtils.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // frontend/src/components/chat/poll/pollUtils.jsx
 
 export function normVoter(v = {}) {

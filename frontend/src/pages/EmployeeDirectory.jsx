@@ -1,3 +1,9 @@
+/**
+ * EmployeeDirectory.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/pages/EmployeeDirectory.jsx
 import { useState, useEffect } from "react";
 import { Phone, Mail, MapPin } from "lucide-react";
@@ -64,7 +70,7 @@ function EmployeeDirectory() {
                     placeholder="Search by name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="flex-1 px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-900 placeholder-gray-400 outline-none"  
+                    className="flex-1 px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-900 placeholder-gray-400 outline-none"
                 />
 
                 <select

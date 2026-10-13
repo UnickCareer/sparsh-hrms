@@ -1,3 +1,9 @@
+/**
+ * chat.realtime.js
+ *
+ * Backend module for HRMS application
+ */
+
 // backend/src/realtime/chat.realtime.js
 //
 // Lightweight Server-Sent Events (SSE) hub for chat.

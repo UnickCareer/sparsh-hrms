@@ -1,3 +1,9 @@
+/**
+ * SalarySlipTab.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/profile/SalarySlipTab.jsx
 import { useState } from "react";
 import { Receipt, Download, FileText } from "lucide-react";

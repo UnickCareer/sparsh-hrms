@@ -1,3 +1,9 @@
+/**
+ * NewTaskModal.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/tasks/NewTaskModal.jsx
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";

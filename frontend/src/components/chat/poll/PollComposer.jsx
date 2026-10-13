@@ -1,3 +1,9 @@
+/**
+ * PollComposer.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // frontend/src/components/chat/poll/PollComposer.jsx
 //
 // "Create poll" dialog. Adds, on top of the existing form:

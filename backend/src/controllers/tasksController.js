@@ -1,3 +1,9 @@
+/**
+ * tasksController.js
+ *
+ * Backend module for HRMS application
+ */
+
 import pool from "../config/db.js";
 
 // Recomputes a task's overall status from its assignments' statuses.

@@ -1,3 +1,9 @@
+/**
+ * salesQueriesController.js
+ *
+ * Backend module for HRMS application
+ */
+
 // controllers/salesQueriesController.js
 
 import pool from "../config/db.js";

@@ -1,3 +1,9 @@
+/**
+ * AddVisitorModal.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/visitors/AddVisitorModal.jsx
 
 import { useEffect, useRef, useState } from "react";

@@ -1,3 +1,9 @@
+/**
+ * Topbar.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/layout/Topbar.jsx
 
 import { Link } from "react-router-dom";

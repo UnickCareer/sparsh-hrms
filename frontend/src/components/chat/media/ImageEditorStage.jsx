@@ -1,3 +1,9 @@
+/**
+ * ImageEditorStage.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // frontend/src/components/chat/media/ImageEditorStage.jsx
 //
 // Canvas-based image editor: Freeform crop + Doodle, with undo / redo.

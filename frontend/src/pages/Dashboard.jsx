@@ -1,3 +1,9 @@
+/**
+ * Dashboard.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/pages/Dashboard.jsx  (only the stats-related part shown — rest unchanged)
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";

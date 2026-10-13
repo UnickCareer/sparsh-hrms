@@ -1,3 +1,9 @@
+/**
+ * mockVisits.js
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/data/mockVisits.js
 
 const mockVisits = [

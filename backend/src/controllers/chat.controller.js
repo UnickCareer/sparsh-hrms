@@ -1,3 +1,10 @@
+/**
+ * Chat Controller
+ *
+ * Core chat functionality including conversations, messages, replies,
+ * forwards, reactions, pins, stars, attachments, and read receipts.
+ */
+
 import pool from "../config/db.js";
 import fs from "node:fs";
 import { publishToConversation } from "../realtime/chat.realtime.js";
@@ -16,11 +23,18 @@ import { checkCanPost, isSystemAdmin } from "./chat.permissions.js";
 // PHASE 2G — CHAT ATTACHMENTS
 // ============================================================
 
-
 // ============================================================
 // SHARED HELPERS
 // ============================================================
 
+/**
+ * Verify conversation participant
+ * Checks if employee is active participant in conversation.
+ * @param {number} employeeId - Employee ID
+ * @param {number} conversationId - Conversation ID
+ * @param {object} client - Database client
+ * @returns {Promise<object|null>} Participant info
+ */
 async function verifyConversationParticipant(
     employeeId,
     conversationId,
@@ -53,11 +67,17 @@ async function verifyConversationParticipant(
     return result.rows[0] || null;
 }
 
-
 // ============================================================
 // REALTIME HELPER
 // ============================================================
 
+/**
+ * Publish chat event
+ * Publishes real-time event to conversation participants.
+ * @param {number} conversationId - Conversation ID
+ * @param {object} event - Event data
+ * @param {object} options - Publish options
+ */
 async function publishChatEvent(
     conversationId,
     event,
@@ -80,11 +100,18 @@ async function publishChatEvent(
     }
 }
 
-
 // ============================================================
 // SHARED MESSAGE SELECT
 // ============================================================
 
+/**
+ * Get message by ID
+ * Retrieves message with attachments, reactions, and metadata.
+ * @param {number} messageId - Message ID
+ * @param {object} client - Database client
+ * @param {number|null} viewerEmployeeId - Viewer employee ID
+ * @returns {Promise<object|null>} Message object
+ */
 export async function getMessageById(
     messageId,
     client = pool,
@@ -214,11 +241,9 @@ export async function getMessageById(
     return message;
 }
 
-
 // ============================================================
 // PHASE 2A — CONVERSATIONS & GROUPS
 // ============================================================
-
 
 // ============================================================
 // GET MY CONVERSATIONS
@@ -325,7 +350,6 @@ export async function getMyConversations(req, res) {
         });
     }
 }
-
 
 // ============================================================
 // GET SINGLE CONVERSATION
@@ -459,7 +483,6 @@ export async function getConversationById(req, res) {
         });
     }
 }
-
 
 // ============================================================
 // CREATE DIRECT CHAT
@@ -692,7 +715,6 @@ export async function createDirectChat(req, res) {
     }
 }
 
-
 // ============================================================
 // CREATE GROUP
 // ============================================================
@@ -884,11 +906,9 @@ export async function createGroup(req, res) {
     }
 }
 
-
 // ============================================================
 // PHASE 2B — MESSAGES
 // ============================================================
-
 
 // ============================================================
 // GET MESSAGES
@@ -1178,7 +1198,6 @@ export async function getMessages(req, res) {
     }
 }
 
-
 // ============================================================
 // MARK CONVERSATION READ
 // ============================================================
@@ -1335,7 +1354,6 @@ export async function markConversationRead(
         client.release();
     }
 }
-
 
 // ============================================================
 // SEND MESSAGE
@@ -1570,7 +1588,6 @@ export async function sendMessage(req, res) {
     }
 }
 
-
 // ============================================================
 // EDIT MESSAGE
 // ============================================================
@@ -1761,7 +1778,6 @@ export async function editMessage(req, res) {
     }
 }
 
-
 // ============================================================
 // DELETE MESSAGE
 // ============================================================
@@ -1941,7 +1957,6 @@ export async function deleteMessage(req, res) {
         });
     }
 }
-
 
 // ============================================================
 // PHASE 2C — REPLY
@@ -2147,7 +2162,6 @@ export async function replyToMessage(req, res) {
         client.release();
     }
 }
-
 
 // ============================================================
 // PHASE 2C — FORWARD
@@ -2474,7 +2488,6 @@ export async function forwardMessage(req, res) {
     }
 }
 
-
 // ============================================================
 // CLEAR CONVERSATION
 // ============================================================
@@ -2566,7 +2579,6 @@ export async function clearConversation(req, res) {
     }
 }
 
-
 // ============================================================
 // DELETE CONVERSATION
 // ============================================================
@@ -2657,7 +2669,6 @@ export async function deleteConversation(req, res) {
         });
     }
 }
-
 
 // ============================================================
 // LATEST CONVERSATION ACTIVITY
@@ -2777,11 +2788,9 @@ export async function getLatestConversationActivity(
     }
 }
 
-
 // ============================================================
 // PHASE 2D — REACTIONS
 // ============================================================
-
 
 // ============================================================
 // HELPER — MESSAGE + PARTICIPANT
@@ -2824,7 +2833,6 @@ async function getMessageForReaction(
     return result.rows[0] || null;
 }
 
-
 // ============================================================
 // PUBLISH REACTION
 // ============================================================
@@ -2849,7 +2857,6 @@ async function publishReactionActivity(
         }
     );
 }
-
 
 // ============================================================
 // ADD / CHANGE / TOGGLE REACTION
@@ -3062,7 +3069,7 @@ export async function reactToMessage(
                 UPDATE chat_message_reactions
                 SET
                     reaction = $1
-        
+      
                 WHERE 
                     id = $2
                 RETURNING *
@@ -3108,7 +3115,6 @@ export async function reactToMessage(
         client.release();
     }
 }
-
 
 // ============================================================
 // GET MESSAGE REACTIONS
@@ -3241,7 +3247,6 @@ export async function getMessageReactions(
     }
 }
 
-
 // ============================================================
 // REMOVE REACTION
 // ============================================================
@@ -3334,12 +3339,10 @@ export async function removeMessageReaction(
     }
 }
 
-
 // ============================================================
 // PHASE 2E — MESSAGE ACTIONS
 // PIN / STAR / REPORT
 // ============================================================
-
 
 // ============================================================
 // PIN MESSAGE
@@ -3475,7 +3478,6 @@ export async function pinMessage(
     }
 }
 
-
 // ============================================================
 // UNPIN MESSAGE
 // ============================================================
@@ -3577,7 +3579,6 @@ export async function unpinMessage(
         });
     }
 }
-
 
 // ============================================================
 // GET PINNED MESSAGES
@@ -3929,7 +3930,6 @@ export async function starMessage(
     }
 }
 
-
 // ============================================================
 // UNSTAR MESSAGE
 // ============================================================
@@ -4031,7 +4031,6 @@ export async function unstarMessage(
         });
     }
 }
-
 
 // ============================================================
 // REPORT MESSAGE
@@ -4153,11 +4152,9 @@ export async function reportMessage(
     }
 }
 
-
 // ============================================================
 // PHASE 2G — CHAT ATTACHMENTS
 // ============================================================
-
 
 // ============================================================
 // ATTACHMENT TYPE HELPER
@@ -4182,8 +4179,6 @@ function getAttachmentMessageType(file) {
 
     return "file";
 }
-
-
 
 // ============================================================
 // CHAT INFO CONTENT
@@ -4215,7 +4210,7 @@ async function fetchConversationInfoContent(conversationId, employeeId) {
                 SELECT 1 FROM chat_hidden_messages hm
                 WHERE hm.message_id = m.id
                 AND hm.employee_id = $2 
-            )  
+            )
             ORDER BY a.created_at DESC, a.id DESC
                 -- N = the parameter that holds the viewer's employee id
         `,
@@ -4445,7 +4440,7 @@ export async function getPersonChatInfo(req, res) {
                     AND NOT EXISTS (
                         SELECT 1 FROM chat_hidden_messages hm
                         WHERE hm.message_id = m.id
-                        AND hm.employee_id = $1   
+                        AND hm.employee_id = $1 
                 ) AS has_messages
             FROM chat_conversations c
             INNER JOIN chat_participants p1
@@ -4786,7 +4781,6 @@ export async function getMessageAttachments(
         });
     }
 }
-
 
 // ============================================================
 // UPLOAD MESSAGE ATTACHMENTS

@@ -1,3 +1,9 @@
+/**
+ * db.js
+ *
+ * Backend module for HRMS application
+ */
+
 import pkg from 'pg';
 import dotenv from 'dotenv';
 

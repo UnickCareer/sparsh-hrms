@@ -1,3 +1,9 @@
+/**
+ * RaiseTicketModal.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/it/RaiseTicketModal.jsx
 
 import {
@@ -25,7 +31,6 @@ const priorities = [
     "Medium",
     "High",
 ];
-
 
 function RaiseTicketModal({
     onClose,
@@ -56,11 +61,9 @@ function RaiseTicketModal({
     const fileInputRef =
         useRef(null);
 
-
     const canCreate =
         subject.trim().length > 0 &&
         !saving;
-
 
     function handleFileChange(e) {
 
@@ -74,13 +77,11 @@ function RaiseTicketModal({
         }
     }
 
-
     function handleCreate() {
 
         if (!canCreate) {
             return;
         }
-
 
         const selectedEmployee =
             employees.find(
@@ -88,7 +89,6 @@ function RaiseTicketModal({
                     String(employee.id) ===
                     String(assigneeId)
             );
-
 
         onCreate({
 
@@ -115,13 +115,11 @@ function RaiseTicketModal({
         });
     }
 
-
     return (
 
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
 
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-
 
                 {/* HEADER */}
 
@@ -139,7 +137,6 @@ function RaiseTicketModal({
 
                     </div>
 
-
                     <button
                         type="button"
                         onClick={onClose}
@@ -151,11 +148,9 @@ function RaiseTicketModal({
 
                 </div>
 
-
                 <div className="px-6 pb-6">
 
                     <div className="flex flex-col gap-4">
-
 
                         {/* SUBJECT */}
 
@@ -184,7 +179,6 @@ function RaiseTicketModal({
                             />
 
                         </div>
-
 
                         {/* CATEGORY + PRIORITY */}
 
@@ -224,7 +218,6 @@ function RaiseTicketModal({
 
                             </div>
 
-
                             <div>
 
                                 <label className="text-sm font-medium text-gray-700">
@@ -261,7 +254,6 @@ function RaiseTicketModal({
 
                         </div>
 
-
                         {/* ASSIGN TO */}
 
                         <div>
@@ -275,7 +267,6 @@ function RaiseTicketModal({
                                 Assign To
 
                             </label>
-
 
                             <select
                                 value={assigneeId}
@@ -314,7 +305,6 @@ function RaiseTicketModal({
 
                             </select>
 
-
                             {loadingEmployees && (
 
                                 <p className="text-xs text-gray-400 mt-1">
@@ -324,7 +314,6 @@ function RaiseTicketModal({
                             )}
 
                         </div>
-
 
                         {/* DESCRIPTION */}
 
@@ -349,7 +338,6 @@ function RaiseTicketModal({
 
                         </div>
 
-
                         {/* ATTACHMENT */}
 
                         <div>
@@ -363,7 +351,6 @@ function RaiseTicketModal({
                                 </span>
 
                             </label>
-
 
                             <button
                                 type="button"
@@ -387,7 +374,6 @@ function RaiseTicketModal({
 
                             </button>
 
-
                             <input
                                 type="file"
                                 ref={fileInputRef}
@@ -397,7 +383,6 @@ function RaiseTicketModal({
                                 className="hidden"
                             />
 
-
                             <p className="text-xs text-gray-400 mt-1">
                                 Screenshot / log file, max 15 MB
                             </p>
@@ -405,7 +390,6 @@ function RaiseTicketModal({
                         </div>
 
                     </div>
-
 
                     {/* FOOTER */}
 
@@ -419,7 +403,6 @@ function RaiseTicketModal({
                         >
                             Cancel
                         </button>
-
 
                         <button
                             type="button"
@@ -441,6 +424,5 @@ function RaiseTicketModal({
         </div>
     );
 }
-
 
 export default RaiseTicketModal;

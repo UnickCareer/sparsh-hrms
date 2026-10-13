@@ -1,3 +1,9 @@
+/**
+ * visitorsController.js
+ *
+ * Backend module for HRMS application
+ */
+
 import pool from "../config/db.js";
 
 // ============================================================
@@ -32,7 +38,6 @@ export const getVisitorHosts = async (req, res) => {
     });
   }
 };
-
 
 // ============================================================
 // POST /api/visitors
@@ -129,7 +134,6 @@ export const createVisitor = async (req, res) => {
   }
 };
 
-
 // ============================================================
 // GET /api/visitors
 // Get all visitors
@@ -173,7 +177,6 @@ export const getAllVisitors = async (req, res) => {
     });
   }
 };
-
 
 // ============================================================
 // PATCH /api/visitors/:id/status

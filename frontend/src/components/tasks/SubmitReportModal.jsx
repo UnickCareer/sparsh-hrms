@@ -1,3 +1,9 @@
+/**
+ * SubmitReportModal.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/tasks/SubmitReportModal.jsx
 import { useState } from "react";
 import { X } from "lucide-react";

@@ -1,3 +1,9 @@
+/**
+ * vite.config.js
+ *
+ * Frontend component/module for HRMS application
+ */
+
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'

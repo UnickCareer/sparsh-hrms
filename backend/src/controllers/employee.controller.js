@@ -1,3 +1,9 @@
+/**
+ * employee.controller.js
+ *
+ * Backend module for HRMS application
+ */
+
 import pool from '../config/db.js';
 
 export const getAllEmployees = async (req, res) => {

@@ -1,3 +1,9 @@
+/**
+ * ChatSettings.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/pages/settings/ChatSettings.jsx
 
 import { useEffect, useState } from "react";
@@ -11,7 +17,6 @@ const DEFAULT_SETTINGS = {
     soundAlerts: false,
     showOnlineStatus: true,
 };
-
 
 // ============================================================
 // TOGGLE ROW
@@ -87,7 +92,6 @@ function ToggleRow({
     );
 }
 
-
 // ============================================================
 // COMPONENT
 // ============================================================
@@ -124,7 +128,6 @@ function ChatSettings() {
             }
         });
 
-
     // ========================================================
     // SAVE SETTINGS
     // ========================================================
@@ -149,7 +152,6 @@ function ChatSettings() {
 
     }, [settings]);
 
-
     // ========================================================
     // UPDATE ONE SETTING
     // ========================================================
@@ -165,7 +167,6 @@ function ChatSettings() {
         }));
 
     }
-
 
     return (
 
@@ -190,7 +191,6 @@ function ChatSettings() {
 
                 Chat Settings
             </h1>
-
 
             {/* ==================================================
                 SETTINGS CARD
@@ -218,7 +218,6 @@ function ChatSettings() {
                     }
                 />
 
-
                 <ToggleRow
                     label="Notifications"
                     description="Get notified about new messages"
@@ -231,7 +230,6 @@ function ChatSettings() {
                     }
                 />
 
-
                 <ToggleRow
                     label="Sound alerts"
                     description="Play a sound for incoming messages"
@@ -243,7 +241,6 @@ function ChatSettings() {
                         )
                     }
                 />
-
 
                 <ToggleRow
                     label="Show online status"
@@ -262,6 +259,5 @@ function ChatSettings() {
         </div>
     );
 }
-
 
 export default ChatSettings;

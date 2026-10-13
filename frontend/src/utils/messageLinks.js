@@ -1,3 +1,9 @@
+/**
+ * messageLinks.js
+ *
+ * Frontend component/module for HRMS application
+ */
+
 const URL_PATTERN = /(?:https?:\/\/|www\.)[^\s<>"'`]+/gi;
 
 function trimUrlPunctuation(value) {

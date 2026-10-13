@@ -1,3 +1,9 @@
+/**
+ * leavesRoutes.js
+ *
+ * Backend module for HRMS application
+ */
+
 import express from "express";
 import {
   applyLeave,

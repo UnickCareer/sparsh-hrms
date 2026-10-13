@@ -1,3 +1,9 @@
+/**
+ * chat.routes.js
+ *
+ * Enterprise-grade chat component/module.
+ */
+
 import express from "express";
 import pool from "../config/db.js";
 import { subscribeEmployee, publishToConversation } from "../realtime/chat.realtime.js";
@@ -31,7 +37,6 @@ import {
     replyToMessage,
     forwardMessage,
 
-
     // ========================================================
     // PHASE 2D — MESSAGE REACTIONS
     // ========================================================
@@ -53,7 +58,7 @@ import {
     starMessage,
     unstarMessage,
     reportMessage,
-    
+  
     // ========================================================
     // PHASE 2F — MESSAGE ATTACHMENTS
     // ========================================================
@@ -73,8 +78,6 @@ import {
     uploadGroupAvatar,
     removeGroupAvatar,
 } from "../controllers/chat.group.controller.js";
-
-
 
 const router = express.Router();
 
@@ -184,11 +187,9 @@ router.post("/conversations/:id/typing", async (req, res) => {
     }
 });
 
-
 // ============================================================
 // PHASE 2A — CONVERSATIONS & GROUPS
 // ============================================================
-
 
 // ============================================================
 // GET MY CONVERSATIONS
@@ -203,7 +204,6 @@ router.get(
     getMyConversations
 );
 
-
 // ============================================================
 // GET SINGLE CONVERSATION
 // ============================================================
@@ -216,7 +216,6 @@ router.get(
     "/conversations/:id",
     getConversationById
 );
-
 
 // ============================================================
 // CREATE DIRECT CHAT
@@ -237,7 +236,6 @@ router.post(
     "/conversations/direct",
     createDirectChat
 );
-
 
 // ============================================================
 // CREATE GROUP
@@ -261,11 +259,9 @@ router.post(
     createGroup
 );
 
-
 // ============================================================
 // PHASE 2B — MESSAGES
 // ============================================================
-
 
 // ============================================================
 // GET MESSAGES
@@ -297,7 +293,6 @@ router.delete(
 
 router.post("/conversations/:id/read", markConversationRead);
 
-
 // ============================================================
 // SEND MESSAGE
 // ============================================================
@@ -327,7 +322,6 @@ router.post(
     sendMessage
 );
 
-
 // ============================================================
 // EDIT MESSAGE
 // ============================================================
@@ -348,7 +342,6 @@ router.patch(
     editMessage
 );
 
-
 // ============================================================
 // DELETE MESSAGE
 // ============================================================
@@ -368,11 +361,9 @@ router.delete(
     deleteMessage
 );
 
-
 // ============================================================
 // PHASE 2C — REPLY & FORWARD
 // ============================================================
-
 
 // ============================================================
 // REPLY TO MESSAGE
@@ -394,7 +385,6 @@ router.post(
     replyToMessage
 );
 
-
 // ============================================================
 // FORWARD MESSAGE
 // ============================================================
@@ -415,7 +405,6 @@ router.post(
     forwardMessage
 );
 
-
 // ============================================================
 // PHASE 2D — REACTIONS
 // ============================================================
@@ -434,7 +423,6 @@ router.post(
 // ============================================================
 // PHASE 2D — MESSAGE REACTIONS
 // ============================================================
-
 
 // ------------------------------------------------------------
 // ADD / CHANGE / TOGGLE REACTION
@@ -463,7 +451,6 @@ router.post(
     reactToMessage
 );
 
-
 // ------------------------------------------------------------
 // GET MESSAGE REACTIONS
 // ------------------------------------------------------------
@@ -479,7 +466,6 @@ router.get(
     "/messages/:messageId/reactions",
     getMessageReactions
 );
-
 
 // ------------------------------------------------------------
 // REMOVE REACTION
@@ -501,7 +487,6 @@ router.delete(
     removeMessageReaction
 );
 
-
 // ============================================================
 // PHASE 2E
 // ============================================================
@@ -509,9 +494,6 @@ router.delete(
 // Future Chat features will be added here.
 //
 // ============================================================
-
-
-
 
 // ============================================================
 // PHASE 2E — MESSAGE ACTIONS
@@ -527,11 +509,9 @@ router.delete("/messages/:id/star", unstarMessage);
 
 router.post("/messages/:id/report", reportMessage);
 
-
 // ============================================================
 // CHAT ATTACHMENTS
 // ============================================================
-
 
 // Send a new message containing images/videos/documents.
 router.post(
@@ -577,7 +557,5 @@ router.delete("/conversations/:id/participants/:participantId", removeGroupParti
 
 router.post("/conversations/:id/polls", createPoll);
 router.post("/messages/:messageId/poll-vote", votePoll);
-
-
 
 export default router;

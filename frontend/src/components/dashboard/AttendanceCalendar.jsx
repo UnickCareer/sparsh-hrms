@@ -1,3 +1,9 @@
+/**
+ * AttendanceCalendar.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/dashboard/AttendanceCalendar.jsx
 import { useState, useEffect } from "react";
 import { Calendar } from "lucide-react";

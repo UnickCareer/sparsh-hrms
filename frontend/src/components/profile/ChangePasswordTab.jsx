@@ -1,3 +1,9 @@
+/**
+ * ChangePasswordTab.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/profile/ChangePasswordTab.jsx
 import { useState } from "react";
 import { KeyRound, Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";

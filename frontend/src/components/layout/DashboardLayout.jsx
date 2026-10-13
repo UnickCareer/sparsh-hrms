@@ -1,3 +1,9 @@
+/**
+ * DashboardLayout.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/layout/DashboardLayout.jsx
 
 import {

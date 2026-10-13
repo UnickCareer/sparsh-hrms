@@ -1,3 +1,9 @@
+/**
+ * MonthYearPicker.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/ui/MonthYearPicker.jsx
 import { useState, useRef, useEffect } from "react";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";

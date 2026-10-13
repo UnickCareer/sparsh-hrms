@@ -1,3 +1,9 @@
+/**
+ * mockAnnouncements.js
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/data/mockAnnouncements.js
 const mockAnnouncements = [
     {

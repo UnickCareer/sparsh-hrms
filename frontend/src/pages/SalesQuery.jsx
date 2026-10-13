@@ -1,3 +1,9 @@
+/**
+ * SalesQuery.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/pages/SalesQuery.jsx
 
 import { useState } from "react";
@@ -74,7 +80,6 @@ function StatBox({
         </div>
     );
 }
-
 
 // ============================================================
 // DASHBOARD TAB
@@ -262,7 +267,6 @@ function DashboardTab({ queries }) {
     );
 }
 
-
 // ============================================================
 // SALES QUERIES TAB
 // ============================================================
@@ -398,7 +402,6 @@ function SalesQueriesTab({
 
             </div>
 
-
             {/* STATUS FILTERS */}
             <div className="flex flex-wrap gap-2 mb-4">
 
@@ -438,7 +441,6 @@ function SalesQueriesTab({
 
             </div>
 
-
             {/* SUMMARY */}
             <p className="text-sm text-gray-500 mb-3">
                 {filtered.length} queries •
@@ -451,7 +453,6 @@ function SalesQueriesTab({
                     secondaryTotal
                 )}
             </p>
-
 
             {/* TABLE */}
             <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
@@ -627,7 +628,6 @@ function SalesQueriesTab({
 
                 </table>
 
-
                 {filtered.length ===
                     0 && (
                     <div className="flex flex-col items-center justify-center py-16 text-gray-400">
@@ -645,7 +645,6 @@ function SalesQueriesTab({
                 )}
 
             </div>
-
 
             {/* ADD MODAL */}
             {showModal && (
@@ -667,7 +666,6 @@ function SalesQueriesTab({
         </div>
     );
 }
-
 
 // ============================================================
 // CUSTOMERS TAB
@@ -745,7 +743,6 @@ function CustomersTab({ queries }) {
 
             </div>
 
-
             <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
 
                 <table className="w-full text-sm">
@@ -805,7 +802,6 @@ function CustomersTab({ queries }) {
 
                 </table>
 
-
                 {customers.length ===
                     0 && (
                     <div className="flex flex-col items-center justify-center py-16 text-gray-400">
@@ -827,7 +823,6 @@ function CustomersTab({ queries }) {
         </div>
     );
 }
-
 
 // ============================================================
 // FOLLOW-UPS TAB
@@ -903,7 +898,6 @@ function FollowUpsTab({ queries }) {
                 </div>
 
             </div>
-
 
             <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
 
@@ -995,7 +989,6 @@ function FollowUpsTab({ queries }) {
 
                 </table>
 
-
                 {withFollowUp.length ===
                     0 && (
                     <div className="flex flex-col items-center justify-center py-16 text-gray-400">
@@ -1017,7 +1010,6 @@ function FollowUpsTab({ queries }) {
         </div>
     );
 }
-
 
 // ============================================================
 // MAIN PAGE
@@ -1097,7 +1089,6 @@ function SalesQuery() {
 
                 </div>
 
-
                 {activeTab ===
                     "dashboard" && (
                     <DashboardTab
@@ -1106,7 +1097,6 @@ function SalesQuery() {
                         }
                     />
                 )}
-
 
                 {activeTab ===
                     "queries" && (
@@ -1123,7 +1113,6 @@ function SalesQuery() {
                     />
                 )}
 
-
                 {activeTab ===
                     "customers" && (
                     <CustomersTab
@@ -1132,7 +1121,6 @@ function SalesQuery() {
                         }
                     />
                 )}
-
 
                 {activeTab ===
                     "followups" && (

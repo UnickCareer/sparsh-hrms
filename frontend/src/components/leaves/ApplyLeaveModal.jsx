@@ -1,3 +1,9 @@
+/**
+ * ApplyLeaveModal.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/leaves/ApplyLeaveModal.jsx
 import { useState, useMemo } from "react";
 import { X, CalendarDays } from "lucide-react";

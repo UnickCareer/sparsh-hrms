@@ -1,3 +1,9 @@
+/**
+ * Attendance.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/pages/Attendance.jsx
 import { useState } from "react";
 import { useOutletContext } from "react-router-dom";

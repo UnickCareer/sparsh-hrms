@@ -1,3 +1,9 @@
+/**
+ * itRoutes.js
+ *
+ * Backend module for HRMS application
+ */
+
 // server/routes/itRoutes.js
 
 import express from "express";
@@ -14,7 +20,6 @@ import {
 } from "../controllers/itController.js";
 
 const router = express.Router();
-
 
 // ============================================================
 // IT TICKETS
@@ -50,7 +55,6 @@ router.delete(
     deleteTicket
 );
 
-
 // ============================================================
 // IT NOTIFICATIONS
 // ============================================================
@@ -64,6 +68,5 @@ router.patch(
     "/notifications/:id/read",
     markITNotificationRead
 );
-
 
 export default router;

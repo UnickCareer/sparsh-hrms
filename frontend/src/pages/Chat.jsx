@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useMemo, useLayoutEffect,  useRef, useState } from "react";
+/**
+ * Chat Page Component
+ *
+ * Main chat interface component that handles real-time messaging, conversations,
+ * group management, reactions, polls, media attachments, and file sharing.
+ * Provides WhatsApp-style UI with message threading, replies, forwards, and
+ * comprehensive chat management features.
+ */
+
+import { useCallback, useEffect, useMemo, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import emojiData from "@emoji-mart/data";
 import { useAuth } from "../context/AuthContext";
@@ -61,14 +70,17 @@ import ChatInfoPanel from "../components/chat/info/ChatInfoPanel";
 
 /* ---------------------------------------------------------
    QUICK REACTIONS
+   Predefined set of commonly used emojis for rapid
+   one-tap message reactions in the chat interface.
    Requirement: 5 quick emojis + +
 --------------------------------------------------------- */
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢"];
 
 /* ---------------------------------------------------------
-   FULL REACTION PICKER
+   FULL REACTION PICKER CONFIGURATION
    Uses @emoji-mart/data for the complete emoji catalogue and
    searchable names/keywords while keeping the existing custom UI.
+   Manages category metadata, recent emoji storage, and search.
 --------------------------------------------------------- */
 const EMOJI_CATEGORY_META = [
     { key: "Recent", label: "Recent", Icon: Clock3, dataKey: null },
@@ -85,6 +97,10 @@ const EMOJI_CATEGORY_META = [
 const RECENT_EMOJIS_STORAGE_KEY = "sparsh_chat_recent_emojis";
 const MAX_RECENT_EMOJIS = 32;
 
+/*
+ * Read recent emojis from localStorage
+ * Retrieves and validates cached recent reaction emojis.
+ */
 function readRecentEmojis() {
     if (typeof window === "undefined") return [];
 
@@ -103,6 +119,10 @@ function readRecentEmojis() {
     }
 }
 
+/*
+ * Record recent emoji in localStorage
+ * Updates the recent emojis list with new entry.
+ */
 function recordRecentEmoji(emoji) {
     if (typeof window === "undefined" || !emoji) return;
 
@@ -126,6 +146,10 @@ const EMOJI_MART_CATEGORY_BY_KEY = Object.fromEntries(
         .map((item) => [item.key, item.dataKey])
 );
 
+/*
+ * Get emoji mart entries
+ * Processes emoji data into searchable entries.
+ */
 function getEmojiMartEntries() {
     const emojis = emojiData?.emojis || {};
 
@@ -192,6 +216,10 @@ const EMOJI_MART_CATEGORY_EMOJIS = Object.fromEntries(
         })
 );
 
+/*
+ * Search emoji mart catalogue
+ * Performs multi-term search across emoji metadata.
+ */
 function searchEmojiMart(query) {
     const normalized = String(query || "").trim().toLowerCase();
     if (!normalized) return [];
@@ -203,6 +231,10 @@ function searchEmojiMart(query) {
         .map((emoji) => emoji.native);
 }
 
+/*
+ * Get user initials
+ * Extracts initials from display name for avatar fallback.
+ */
 function getInitials(name = "") {
     return (
         name
@@ -215,6 +247,10 @@ function getInitials(name = "") {
     );
 }
 
+/*
+ * Format time
+ * Formats timestamp for message display.
+ */
 function formatTime(value) {
     if (!value) return "";
 
@@ -226,6 +262,10 @@ function formatTime(value) {
     });
 }
 
+/*
+ * Format conversation time
+ * Formats timestamp for conversation list display.
+ */
 function formatConversationTime(value) {
     if (!value) return "";
 
@@ -693,7 +733,6 @@ function FullReactionPicker({ onSelect, onClose, pickerRef, maxHeight , embedded
     );
 }
 
-
 /* =========================================================
    REACTION DETAILS CARD (WhatsApp-style)
 ========================================================= */
@@ -702,6 +741,12 @@ const REACTION_CARD_GAP = 6;
 const REACTION_CARD_EDGE = 8;
 const REACTION_CARD_PICKER_HEIGHT = 330;
 
+/**
+ * Reaction details card component
+ * Displays reaction details and allow managing reactions.
+ * @param {object} props - Component props
+ * @returns {JSX.Element|null} ReactionDetailsCard component
+ */
 function ReactionDetailsCard({
     message,
     initialEmoji = "all",
@@ -1007,6 +1052,11 @@ function ReactionDetailsCard({
    EMPTY STATE
 ========================================================= */
 
+/**
+ * Empty state component for no conversation selected
+ * @param {object} props - Component props
+ * @returns {JSX.Element} EmptyState component
+ */
 function EmptyState({ onNewChat }) {
     return (
         <div className="relative flex h-full min-h-[520px] flex-col items-center justify-center overflow-hidden  bg-white">
@@ -1040,6 +1090,11 @@ function EmptyState({ onNewChat }) {
    MODAL
 ========================================================= */
 
+/**
+ * Modal wrapper component
+ * @param {object} props - Component props
+ * @returns {JSX.Element} Modal component
+ */
 function Modal({
     title,
     subtitle,
@@ -1090,6 +1145,11 @@ function Modal({
    NEW CHAT
 ========================================================= */
 
+/**
+ * New chat modal component
+ * @param {object} props - Component props
+ * @returns {JSX.Element} NewChatModal component
+ */
 function NewChatModal({
     employees,
     currentId,
@@ -1233,6 +1293,11 @@ function NewChatModal({
    NEW GROUP
 ========================================================= */
 
+/**
+ * New group modal component
+ * @param {object} props - Component props
+ * @returns {JSX.Element} NewGroupModal component
+ */
 function NewGroupModal({
     employees,
     currentId,
@@ -1452,6 +1517,11 @@ function NewGroupModal({
    MESSAGE DELETE CONFIRMATION
 ========================================================= */
 
+/**
+ * Message delete confirmation modal
+ * @param {object} props - Component props
+ * @returns {JSX.Element|null} MessageDeleteModal component
+ */
 function MessageDeleteModal({ messages, currentId, onClose, onConfirm, busy = false }) {
     if (!messages?.length) return null;
 
@@ -1545,6 +1615,11 @@ function ChatActionModal({ action, onClose, onConfirm, busy = false }) {
    FORWARD MODAL
 ========================================================= */
 
+/**
+ * Forward message modal component
+ * @param {object} props - Component props
+ * @returns {JSX.Element} ForwardModal component
+ */
 function ForwardModal({
     conversations,
     currentConversationId,
@@ -1707,6 +1782,12 @@ function getMessageDeliveryState(message) {
     return "sent";
 }
 
+/**
+ * Message bubble component
+ * Renders individual chat messages with reactions, actions, and metadata.
+ * @param {object} props - Component props
+ * @returns {JSX.Element} MessageBubble component
+ */
 function MessageBubble({
     message,
     currentId,
@@ -1806,8 +1887,6 @@ function MessageBubble({
     const chevronVisibility = menuOpen
         ? "opacity-100"
         : "opacity-0 group-hover/bubble:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100";
-
-
 
     const updateOverlayPosition = useCallback(() => {
         if (!menuOpen || !bubbleRef.current || !overlayRef.current) {
@@ -2260,6 +2339,14 @@ function MessageBubble({
     );
 }
 
+/**
+ * Main Chat Component
+ *
+ * Renders the complete chat interface with conversations sidebar,
+ * message area, media handling, polls, reactions, and real-time updates.
+ *
+ * @returns {JSX.Element} Chat component
+ */
 function Chat() {
     const { currentUser, employeeId } = useAuth();
 
@@ -2269,7 +2356,7 @@ function Chat() {
     const [selectedConversation, setSelectedConversation] =
         useState(null);
     const [participants, setParticipants] = useState([]);
-    const [messages, setMessages] = useState([]);                               
+    const [messages, setMessages] = useState([]);                             
     const [pinnedMessages, setPinnedMessages] = useState([]);
     const [activePinnedIndex, setActivePinnedIndex] = useState(0);
     const [pinLimitConfirm, setPinLimitConfirm] = useState(null);
@@ -2362,7 +2449,7 @@ function Chat() {
             setActiveMessageMenuId(null);
             setActiveReactionMessageId(null);
             setFullPickerMessage(null);
-            setReactionDetails(null);    
+            setReactionDetails(null);  
             setComposerEmojiOpen(false);
             setAttachmentMenuOpen(false);
             setHeaderMenuOpen(false);
@@ -3231,7 +3318,6 @@ function Chat() {
         toast.error(error.message);
     }
 };
-
 
 const toggleMessageFlag = async (message, type) => {
     if (type === "pin" && message.deleted_at) {
@@ -4562,7 +4648,7 @@ const closeFullPicker = useCallback(() => {
                                                         Number(previousMessage.sender_employee_id) ===
                                                             Number(message.sender_employee_id)
                                                     );
-                                                
+                                              
                                                 const isFirstInGroup = 
                                                     index == 0 ||
                                                     Number(previousMessage?.sender_employee_id) !=

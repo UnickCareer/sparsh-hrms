@@ -1,3 +1,9 @@
+/**
+ * ChatInfoPanel.jsx
+ *
+ * Enterprise-grade chat component/module.
+ */
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -32,12 +38,36 @@ import { extractMessageLinks } from "../../../utils/messageLinks";
    small helpers
 --------------------------------------------------------- */
 
+/**
+ * Validate ID format
+ * @param {*} value - Value to validate
+ * @returns {boolean} True if valid
+ */
 const validId = (value) => Number.isInteger(Number(value)) && Number(value) > 0;
 // attachments carry message_id; link rows ARE messages, so their id is the message id
+/**
+ * Extract message ID from item
+ * @param {object} item - Item object
+ * @returns {number} Message ID
+ */
 const messageIdOf = (item) => Number(item.message_id ?? item.id);
+/**
+ * Remove duplicate values
+ * @param {Array} list - Input array
+ * @returns {Array} Unique array
+ */
 const uniq = (list) => [...new Set(list)];
+/**
+ * Sleep utility
+ * @param {number} ms - Milliseconds to sleep
+ * @returns {Promise} Promise that resolves after delay
+ */
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Avatar component
+ * @param {object} props - Component props
+ */
 function Avatar({ name = "", avatar = null, size = "md" }) {
     const sizes = {
         sm: "h-9 w-9 text-xs",
@@ -68,6 +98,11 @@ function Avatar({ name = "", avatar = null, size = "md" }) {
     );
 }
 
+/**
+ * Format file size in bytes
+ * @param {number|string} value - Size value
+ * @returns {string} Formatted size
+ */
 function formatBytes(value) {
     const size = Number(value || 0);
     if (!size) return "";
@@ -77,6 +112,11 @@ function formatBytes(value) {
     return `${(size / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
+/**
+ * Format date string
+ * @param {string} value - Date string
+ * @returns {string} Formatted date
+ */
 function formatDate(value) {
     if (!value) return "";
     const date = new Date(value);
@@ -84,6 +124,11 @@ function formatDate(value) {
     return date.toLocaleDateString([], { day: "2-digit", month: "short", year: "numeric" });
 }
 
+/**
+ * Determine file kind from type and name
+ * @param {object} attachment - Attachment object
+ * @returns {string} File kind
+ */
 function fileKind(attachment = {}) {
     const type = String(attachment.file_type || "").toLowerCase();
     const name = String(attachment.file_name || "").toLowerCase();
@@ -1369,7 +1414,7 @@ export default function ChatInfoPanel({
                                         )}
                                     </button>
                                 )}
-   
+ 
                                 <button
                                     type="button"
                                     disabled={!selectedCount || !!actionBusy}

@@ -1,3 +1,9 @@
+/**
+ * IT.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/pages/IT.jsx
 
 import { useEffect, useMemo, useState } from "react";
@@ -56,7 +62,6 @@ const statusIcons = {
     Reopened: AlertCircle,
 };
 
-
 // ============================================================
 // CURRENT USER
 // ============================================================
@@ -75,7 +80,6 @@ function getCurrentUser() {
         return null;
     }
 }
-
 
 // ============================================================
 // USER HELPERS
@@ -120,7 +124,6 @@ function getUserName(user) {
     return "";
 }
 
-
 function getEmployeeId(employee) {
     return (
         employee?.employee_id ??
@@ -131,11 +134,9 @@ function getEmployeeId(employee) {
     );
 }
 
-
 function getEmployeeName(employee) {
     return getUserName(employee);
 }
-
 
 function getLoggedInEmployeeId(user) {
     return (
@@ -146,7 +147,6 @@ function getLoggedInEmployeeId(user) {
         null
     );
 }
-
 
 function isAdminUser(user) {
     const role = String(
@@ -164,7 +164,6 @@ function isAdminUser(user) {
         "manager",
     ].includes(role);
 }
-
 
 // ============================================================
 // IT PAGE
@@ -189,7 +188,6 @@ function IT() {
         () => isAdminUser(currentUser),
         [currentUser]
     );
-
 
     const [tickets, setTickets] =
         useState([]);
@@ -221,7 +219,6 @@ function IT() {
     const [saving, setSaving] =
         useState(false);
 
-
     // ============================================================
     // REFRESH USER FROM LOCAL STORAGE
     // ============================================================
@@ -245,7 +242,6 @@ function IT() {
         };
 
     }, []);
-
 
     // ============================================================
     // LOAD TICKETS
@@ -316,7 +312,6 @@ function IT() {
 
         }
     }
-
 
     // ============================================================
     // LOAD EMPLOYEES
@@ -394,7 +389,6 @@ function IT() {
         }
     }
 
-
     useEffect(() => {
 
         loadTickets();
@@ -404,7 +398,6 @@ function IT() {
         currentEmployeeId,
         isAdmin,
     ]);
-
 
     // ============================================================
     // FILTER
@@ -416,7 +409,6 @@ function IT() {
                 statusFilter === "All" ||
                 ticket.status === statusFilter
         );
-
 
     // ============================================================
     // SUMMARY
@@ -442,7 +434,6 @@ function IT() {
             (ticket) =>
                 ticket.status === "Resolved"
         ).length;
-
 
     // ============================================================
     // CREATE TICKET
@@ -521,7 +512,6 @@ function IT() {
         }
     }
 
-
     // ============================================================
     // UPDATE TICKET
     // ============================================================
@@ -592,7 +582,6 @@ function IT() {
         }
     }
 
-
     // ============================================================
     // LOAD DETAILS
     // ============================================================
@@ -631,7 +620,6 @@ function IT() {
             );
         }
     }
-
 
     // ============================================================
     // ADD UPDATE
@@ -710,7 +698,6 @@ function IT() {
         }
     }
 
-
     // ============================================================
     // DELETE
     // ============================================================
@@ -773,14 +760,12 @@ function IT() {
         }
     }
 
-
     function closeDetails() {
 
         setSelectedTicket(null);
         setUpdateText("");
 
     }
-
 
     // ============================================================
     // RENDER
@@ -824,7 +809,6 @@ function IT() {
 
                 </div>
 
-
                 <div className="flex items-center gap-2">
 
                     <button
@@ -849,7 +833,6 @@ function IT() {
 
                     </button>
 
-
                     <button
                         type="button"
                         onClick={() =>
@@ -868,7 +851,6 @@ function IT() {
 
             </div>
 
-
             {/* ERROR */}
 
             {error && (
@@ -878,7 +860,6 @@ function IT() {
                 </div>
 
             )}
-
 
             {/* SUMMARY */}
 
@@ -914,7 +895,6 @@ function IT() {
 
             </div>
 
-
             {/* FILTERS */}
 
             <div className="flex flex-wrap gap-2 mb-4">
@@ -939,7 +919,6 @@ function IT() {
                 ))}
 
             </div>
-
 
             {/* TABLE */}
 
@@ -992,7 +971,6 @@ function IT() {
                             </tr>
 
                         </thead>
-
 
                         <tbody>
 
@@ -1130,7 +1108,6 @@ function IT() {
 
                 </div>
 
-
                 {!loading &&
                     filteredTickets.length === 0 && (
 
@@ -1155,7 +1132,6 @@ function IT() {
 
             </div>
 
-
             {/* CREATE MODAL */}
 
             {showModal && (
@@ -1173,7 +1149,6 @@ function IT() {
                 />
 
             )}
-
 
             {/* DETAILS */}
 
@@ -1222,7 +1197,6 @@ function IT() {
 
                         </div>
 
-
                         <div className="overflow-y-auto max-h-[calc(90vh-150px)] px-6 py-5">
 
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
@@ -1266,7 +1240,6 @@ function IT() {
                                         selectedTicket.updates
                                     }
                                 />
-
 
                                 {/* ASSIGNEE */}
 
@@ -1341,7 +1314,6 @@ function IT() {
 
                             </div>
 
-
                             {/* STATUS */}
 
                             <div className="mb-6">
@@ -1402,7 +1374,6 @@ function IT() {
 
                             </div>
 
-
                             {/* DESCRIPTION */}
 
                             <div className="mb-6">
@@ -1419,7 +1390,6 @@ function IT() {
                                 </div>
 
                             </div>
-
 
                             {/* ATTACHMENT */}
 
@@ -1445,7 +1415,6 @@ function IT() {
 
                             )}
 
-
                             {/* UPDATES */}
 
                             <div>
@@ -1468,7 +1437,6 @@ function IT() {
                                     </span>
 
                                 </div>
-
 
                                 <div className="space-y-3 mb-4">
 
@@ -1523,7 +1491,6 @@ function IT() {
 
                                 </div>
 
-
                                 <div className="flex gap-2">
 
                                     <input
@@ -1575,7 +1542,6 @@ function IT() {
 
                             </div>
 
-
                             {/* DELETE */}
 
                             <div className="mt-7 pt-5 border-t border-gray-100 flex justify-end">
@@ -1610,7 +1576,6 @@ function IT() {
         </div>
     );
 }
-
 
 // ============================================================
 // SUMMARY CARD
@@ -1653,7 +1618,6 @@ function SummaryCard({
     );
 }
 
-
 // ============================================================
 // INFO ITEM
 // ============================================================
@@ -1684,7 +1648,6 @@ function InfoItem({
     );
 }
 
-
 // ============================================================
 // DATE
 // ============================================================
@@ -1713,7 +1676,6 @@ function formatDate(dateString) {
         }
     );
 }
-
 
 // ============================================================
 // DATE TIME
@@ -1745,6 +1707,5 @@ function formatDateTime(dateString) {
         }
     );
 }
-
 
 export default IT;

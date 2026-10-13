@@ -1,3 +1,9 @@
+/**
+ * App.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "./components/layout/DashboardLayout";
@@ -20,8 +26,6 @@ import ProtectedRoute from "./components/routes/ProtectedRoute.jsx";
 import Login from "./pages/Login";
 import PerformanceReviewDetail from "./pages/PerformanceReviewDetail";
 import Chat from "./pages/Chat";
-
-
 
 function App() {
     return (

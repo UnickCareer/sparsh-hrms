@@ -1,3 +1,9 @@
+/**
+ * HolidaysTab.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/profile/HolidaysTab.jsx
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";

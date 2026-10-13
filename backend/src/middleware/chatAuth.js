@@ -1,3 +1,9 @@
+/**
+ * chatAuth.js
+ *
+ * Backend module for HRMS application
+ */
+
 // backend/src/middleware/chatAuth.js
 
 import pool from "../config/db.js";
@@ -26,7 +32,6 @@ import pool from "../config/db.js";
 // Later, when proper authentication is added, getEmployeeId()
 // should read req.user.id instead.
 // ============================================================
-
 
 // ============================================================
 // GET CURRENT EMPLOYEE ID
@@ -87,7 +92,6 @@ export function getChatEmployeeId(req) {
     return null;
 }
 
-
 // ============================================================
 // VALIDATE EMPLOYEE ID
 // ============================================================
@@ -106,7 +110,6 @@ export function validateChatEmployeeId(req, res, next) {
 
     next();
 }
-
 
 // ============================================================
 // GET CONVERSATION ID
@@ -133,7 +136,6 @@ export function getConversationId(req) {
 
     return Number.isInteger(id) ? id : null;
 }
-
 
 // ============================================================
 // GET CHAT PARTICIPANT
@@ -185,7 +187,6 @@ export async function getChatParticipant(
 
     return result.rows[0] || null;
 }
-
 
 // ============================================================
 // REQUIRE CHAT PARTICIPANT
@@ -263,7 +264,6 @@ export async function requireChatParticipant(
     }
 }
 
-
 // ============================================================
 // ROLE LEVELS
 // ============================================================
@@ -273,7 +273,6 @@ const CHAT_ROLE_LEVELS = {
     admin: 2,
     owner: 3,
 };
-
 
 // ============================================================
 // CHECK CHAT ROLE
@@ -332,7 +331,6 @@ export function requireChatRole(
     };
 }
 
-
 // ============================================================
 // OWNER ONLY
 // ============================================================
@@ -340,14 +338,12 @@ export function requireChatRole(
 export const requireChatOwner =
     requireChatRole("owner");
 
-
 // ============================================================
 // ADMIN OR OWNER
 // ============================================================
 
 export const requireChatAdmin =
     requireChatRole("admin");
-
 
 // ============================================================
 // MEMBER / ADMIN / OWNER
@@ -360,7 +356,6 @@ export const requireChatAdmin =
 
 export const requireChatMember =
     requireChatRole("member");
-
 
 // ============================================================
 // EXPORT ROLE LEVELS

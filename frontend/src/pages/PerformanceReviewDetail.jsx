@@ -1,3 +1,9 @@
+/**
+ * PerformanceReviewDetail.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/pages/PerformanceReviewDetail.jsx
 
 import { useEffect, useState } from "react";
@@ -16,7 +22,6 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext.jsx";
-
 
 // ============================================================
 // STATUS STYLES
@@ -48,7 +53,6 @@ const statusStyles = {
         "bg-green-50 text-green-600 border-green-200",
 };
 
-
 // ============================================================
 // COMPONENT
 // ============================================================
@@ -67,7 +71,6 @@ function PerformanceReviewDetail() {
 
     const [goalData, setGoalData] = useState({});
 
-
     // ========================================================
     // FETCH REVIEW
     // ========================================================
@@ -75,7 +78,6 @@ function PerformanceReviewDetail() {
     useEffect(() => {
         fetchReview();
     }, [reviewId]);
-
 
     async function fetchReview() {
         if (!reviewId) {
@@ -131,7 +133,6 @@ function PerformanceReviewDetail() {
         }
     }
 
-
     // ========================================================
     // UPDATE LOCAL GOAL FIELD
     // ========================================================
@@ -146,7 +147,6 @@ function PerformanceReviewDetail() {
         }));
     }
 
-
     // ========================================================
     // DETERMINE WHETHER EMPLOYEE CAN EDIT
     // ========================================================
@@ -158,7 +158,6 @@ function PerformanceReviewDetail() {
             review.status === "Self Assessment" ||
             review.status === "Needs Correction"
         );
-
 
     // ========================================================
     // SAVE SINGLE GOAL
@@ -240,7 +239,6 @@ function PerformanceReviewDetail() {
         }
     }
 
-
     // ========================================================
     // SAVE ALL GOALS
     // ========================================================
@@ -316,7 +314,6 @@ function PerformanceReviewDetail() {
             setSavingAll(false);
         }
     }
-
 
     // ========================================================
     // MOVE REVIEW TO SELF ASSESSMENT
@@ -406,7 +403,6 @@ function PerformanceReviewDetail() {
         setSubmitting(false);
     }
 }
-
 
     // ========================================================
     // SUBMIT PERFORMANCE REVIEW
@@ -530,7 +526,6 @@ function PerformanceReviewDetail() {
         }
     }
 
-
     // ========================================================
     // LOADING
     // ========================================================
@@ -549,7 +544,6 @@ function PerformanceReviewDetail() {
             </div>
         );
     }
-
 
     // ========================================================
     // NOT FOUND
@@ -589,7 +583,6 @@ function PerformanceReviewDetail() {
         );
     }
 
-
     // ========================================================
     // SUBMITTED / LOCKED STATE
     // ========================================================
@@ -599,7 +592,6 @@ function PerformanceReviewDetail() {
         review.status === "HR Review" ||
         review.status === "Approved" ||
         review.status === "Completed";
-
 
     // ========================================================
     // RENDER
@@ -653,7 +645,6 @@ function PerformanceReviewDetail() {
 
                 </div>
 
-
                 <span
                     className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${
                         statusStyles[
@@ -666,7 +657,6 @@ function PerformanceReviewDetail() {
                 </span>
 
             </div>
-
 
             {/* =================================================
                 CYCLE INFORMATION
@@ -692,7 +682,6 @@ function PerformanceReviewDetail() {
 
                     </div>
 
-
                     <div className="text-right">
 
                         <p className="text-xs text-gray-400 mb-1">
@@ -714,7 +703,6 @@ function PerformanceReviewDetail() {
                     </div>
 
                 </div>
-
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">
 
@@ -743,7 +731,6 @@ function PerformanceReviewDetail() {
                 </div>
 
             </div>
-
 
             {/* =================================================
                 APPROVED MESSAGE
@@ -778,7 +765,6 @@ function PerformanceReviewDetail() {
 
                 </div>
             )}
-
 
             {/* =================================================
                 MANAGER / HR REVIEW MESSAGE
@@ -815,7 +801,6 @@ function PerformanceReviewDetail() {
 
                     </div>
                 )}
-
 
             {/* =================================================
                 NEEDS CORRECTION
@@ -886,7 +871,6 @@ function PerformanceReviewDetail() {
                 </div>
             )}
 
-
             {/* =================================================
                 SELF ASSESSMENT INFORMATION
             ================================================= */}
@@ -922,7 +906,6 @@ function PerformanceReviewDetail() {
                 </div>
             )}
 
-
             {/* =================================================
                 GOALS
             ================================================= */}
@@ -950,7 +933,6 @@ function PerformanceReviewDetail() {
                     </span>
 
                 </div>
-
 
                 <div className="flex flex-col gap-4">
 
@@ -1007,7 +989,6 @@ function PerformanceReviewDetail() {
 
                                         </div>
 
-
                                         <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
                                             {
                                                 goal.weightage
@@ -1016,7 +997,6 @@ function PerformanceReviewDetail() {
                                         </span>
 
                                     </div>
-
 
                                     {/* GOAL DESCRIPTION */}
 
@@ -1052,7 +1032,6 @@ function PerformanceReviewDetail() {
 
                                     </div>
 
-
                                     {/* EMPLOYEE COMMENTS */}
 
                                     <div className="mb-4">
@@ -1086,7 +1065,6 @@ function PerformanceReviewDetail() {
 
                                     </div>
 
-
                                     {/* MANAGER COMMENTS */}
 
                                     {goal.manager_comments && (
@@ -1114,7 +1092,6 @@ function PerformanceReviewDetail() {
                                         </div>
                                     )}
 
-
                                     {/* MANAGER RATING */}
 
                                     {goal.manager_rating !==
@@ -1135,7 +1112,6 @@ function PerformanceReviewDetail() {
 
                                             </div>
                                         )}
-
 
                                     {/* SAVE BUTTON */}
 
@@ -1188,7 +1164,6 @@ function PerformanceReviewDetail() {
                 </div>
 
             </div>
-
 
             {/* =================================================
                 ACTION SECTION
@@ -1250,7 +1225,6 @@ function PerformanceReviewDetail() {
                 </div>
             )}
 
-
             {/* =================================================
                 SELF ASSESSMENT SUBMIT
             ================================================= */}
@@ -1274,7 +1248,6 @@ function PerformanceReviewDetail() {
                             </p>
 
                         </div>
-
 
                         <button
                             onClick={handleSubmit}
@@ -1306,7 +1279,6 @@ function PerformanceReviewDetail() {
 
                 </div>
             )}
-
 
             {/* =================================================
                 NEEDS CORRECTION ACTION
@@ -1367,7 +1339,6 @@ function PerformanceReviewDetail() {
                 </div>
             )}
 
-
             {/* =================================================
                 LOCKED NOTICE
             ================================================= */}
@@ -1393,7 +1364,6 @@ function PerformanceReviewDetail() {
     );
 }
 
-
 // ============================================================
 // INFO CARD
 // ============================================================
@@ -1414,7 +1384,6 @@ function InfoCard({ label, value }) {
     );
 }
 
-
 // ============================================================
 // DATE FORMATTER
 // ============================================================
@@ -1434,6 +1403,5 @@ function formatDate(dateString) {
         year: "numeric",
     });
 }
-
 
 export default PerformanceReviewDetail;

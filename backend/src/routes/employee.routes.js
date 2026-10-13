@@ -1,3 +1,9 @@
+/**
+ * employee.routes.js
+ *
+ * Backend module for HRMS application
+ */
+
 import express from 'express';
 import { getAllEmployees, loginEmployee } from '../controllers/employee.controller.js';
 

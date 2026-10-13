@@ -1,3 +1,9 @@
+/**
+ * PerformanceReview.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/pages/PerformanceReview.jsx
 
 import { useEffect, useState } from "react";

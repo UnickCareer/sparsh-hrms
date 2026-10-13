@@ -1,3 +1,9 @@
+/**
+ * Profile.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/pages/Profile.jsx
 import { useState } from "react";
 import { useOutletContext } from "react-router-dom";

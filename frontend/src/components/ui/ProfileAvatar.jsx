@@ -1,3 +1,9 @@
+/**
+ * ProfileAvatar.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/ui/ProfileAvatar.jsx
 function ProfileAvatar({ fullName, size = "w-9 h-9", textSize = "text-sm" }) {
     // Correctly split the string, target the first letter of the first word, and capitalise it

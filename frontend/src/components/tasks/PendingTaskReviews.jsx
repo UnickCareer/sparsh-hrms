@@ -1,3 +1,9 @@
+/**
+ * PendingTaskReviews.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/tasks/PendingTaskReviews.jsx
 import { useState, useEffect } from "react";
 import { CheckCircle2, RotateCcw } from "lucide-react";

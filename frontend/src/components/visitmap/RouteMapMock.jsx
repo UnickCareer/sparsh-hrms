@@ -1,3 +1,9 @@
+/**
+ * RouteMapMock.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/visitmap/RouteMapMock.jsx
 import { useState } from "react";
 import { MapPin } from "lucide-react";

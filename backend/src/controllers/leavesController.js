@@ -1,3 +1,9 @@
+/**
+ * leavesController.js
+ *
+ * Backend module for HRMS application
+ */
+
 import pool from "../config/db.js";
 
 // Helper: count working days (Mon-Sat, skipping Sundays) between two dates

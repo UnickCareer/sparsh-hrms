@@ -1,3 +1,8 @@
+/**
+ * server.js
+ *
+ * Backend module for HRMS application
+ */
 
 // server/server.js
 

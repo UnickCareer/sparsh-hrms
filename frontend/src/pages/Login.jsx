@@ -1,8 +1,13 @@
+/**
+ * Login.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 import { useState } from "react";
 import { User, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-
 
 export default function Login() {
   const [identifier, setIdentifier] = useState("");
@@ -96,7 +101,6 @@ export default function Login() {
 
 login(mappedUser);
 navigate("/dashboard");
-
 
   } catch (err) {
     console.error(err);

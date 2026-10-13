@@ -1,3 +1,9 @@
+/**
+ * NotificationsPanel.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/topbar/NotificationsPanel.jsx
 
 import {
@@ -26,14 +32,12 @@ import {
 
 import { useAuth } from "../../context/AuthContext.jsx";
 
-
 // ============================================================
 // API
 // ============================================================
 
 const IT_API =
     "http://localhost:5000/api/it";
-
 
 // ============================================================
 // TIME AGO
@@ -103,7 +107,6 @@ function timeAgo(dateStr) {
     return `${months} months ago`;
 }
 
-
 // ============================================================
 // COMPONENT
 // ============================================================
@@ -169,7 +172,6 @@ function NotificationsPanel({
     const containerRef =
         useRef(null);
 
-
     // ============================================================
     // LOAD IT NOTIFICATIONS
     // ============================================================
@@ -216,7 +218,6 @@ function NotificationsPanel({
         }
     }
 
-
     // ============================================================
     // LIVE IT NOTIFICATIONS
     // ============================================================
@@ -240,7 +241,6 @@ function NotificationsPanel({
                 interval
             );
     }, [employeeId]);
-
 
     // ============================================================
     // LOAD PERFORMANCE REVIEW NOTIFICATIONS
@@ -301,7 +301,6 @@ function NotificationsPanel({
         }
     }
 
-
     // ============================================================
     // LIVE PERFORMANCE REVIEW NOTIFICATIONS
     // ============================================================
@@ -334,7 +333,6 @@ function NotificationsPanel({
             );
     }, [employeeId]);
 
-
     // ============================================================
     // PERFORMANCE UNREAD COUNT
     // ============================================================
@@ -345,7 +343,6 @@ function NotificationsPanel({
                 notification.isUnread
         ).length;
 
-
     // ============================================================
     // IT UNREAD COUNT
     // ============================================================
@@ -355,7 +352,6 @@ function NotificationsPanel({
             (notification) =>
                 !notification.is_read
         ).length;
-
 
     // ============================================================
     // TOTAL BELL BADGE
@@ -370,10 +366,8 @@ function NotificationsPanel({
         performanceNotificationsUnreadCount +
         itUnreadCount;
 
-
     const inboxBadgeCount =
         bellBadgeCount;
-
 
     // ============================================================
     // REFRESH WHEN OPENING NOTIFICATION PANEL
@@ -390,7 +384,6 @@ function NotificationsPanel({
         loadPerformanceNotifications();
         loadITNotifications();
     }, [open, employeeId]);
-
 
     // ============================================================
     // CLOSE WHEN CLICKING OUTSIDE
@@ -420,7 +413,6 @@ function NotificationsPanel({
             );
     }, []);
 
-
     // ============================================================
     // NAVIGATION
     // ============================================================
@@ -432,7 +424,6 @@ function NotificationsPanel({
             "/announcements"
         );
     }
-
 
     function handleViewPendingApprovals() {
         setOpen(false);
@@ -446,7 +437,6 @@ function NotificationsPanel({
             }
         );
     }
-
 
     function handleViewDecidedLeave(
         leaveId
@@ -466,7 +456,6 @@ function NotificationsPanel({
         );
     }
 
-
     function handleViewTaskReviews() {
         setOpen(false);
 
@@ -479,7 +468,6 @@ function NotificationsPanel({
             }
         );
     }
-
 
     function handleViewMyAssignment(
         assignmentId
@@ -499,7 +487,6 @@ function NotificationsPanel({
         );
     }
 
-
     function handleViewTeammateApproval(
         assignmentId
     ) {
@@ -517,7 +504,6 @@ function NotificationsPanel({
             "/tasks"
         );
     }
-
 
     function handleViewTaskCompletion(
         taskId
@@ -537,7 +523,6 @@ function NotificationsPanel({
         );
     }
 
-
     function handleViewSalesQuery(
         queryId
     ) {
@@ -555,7 +540,6 @@ function NotificationsPanel({
             "/sales-query"
         );
     }
-
 
     // ============================================================
     // PERFORMANCE REVIEW NOTIFICATION CLICK
@@ -622,7 +606,6 @@ function NotificationsPanel({
         );
     }
 
-
     // ============================================================
     // IT NOTIFICATION CLICK
     // ============================================================
@@ -671,7 +654,6 @@ function NotificationsPanel({
         );
     }
 
-
     // ============================================================
     // TABS
     // ============================================================
@@ -699,7 +681,6 @@ function NotificationsPanel({
         },
     ];
 
-
     // ============================================================
     // INBOX CONTENT CHECK
     // ============================================================
@@ -714,7 +695,6 @@ function NotificationsPanel({
         salesQueryNotifications.length > 0 ||
         performanceNotifications.length > 0 ||
         itNotifications.length > 0;
-
 
     // ============================================================
     // RENDER
@@ -753,7 +733,6 @@ function NotificationsPanel({
                     </span>
                 )}
             </button>
-
 
             {/* ==================================================
                 POPUP
@@ -809,13 +788,11 @@ function NotificationsPanel({
 
                     </div>
 
-
                     {/* ==================================================
                         CONTENT
                     ================================================== */}
 
                     <div className="max-h-[420px] overflow-y-auto p-3 scrollbar-none">
-
 
                         {/* ==================================================
                             ANNOUNCEMENTS
@@ -870,7 +847,6 @@ function NotificationsPanel({
                             </div>
                         )}
 
-
                         {/* ==================================================
                             INBOX
                         ================================================== */}
@@ -878,7 +854,6 @@ function NotificationsPanel({
                         {tab ===
                             "inbox" && (
                             <div className="flex flex-col gap-3">
-
 
                                 {/* ==================================================
                                     IT NOTIFICATIONS
@@ -939,7 +914,6 @@ function NotificationsPanel({
                                         </button>
                                     )
                                 )}
-
 
                                 {/* ==================================================
                                     PERFORMANCE REVIEW
@@ -1003,7 +977,6 @@ function NotificationsPanel({
                                     )
                                 )}
 
-
                                 {/* ==================================================
                                     SALES QUERY
                                 ================================================== */}
@@ -1063,7 +1036,6 @@ function NotificationsPanel({
                                     )
                                 )}
 
-
                                 {/* ==================================================
                                     LEAVES - PENDING APPROVALS
                                 ================================================== */}
@@ -1105,7 +1077,6 @@ function NotificationsPanel({
                                         </button>
                                     )
                                 )}
-
 
                                 {/* ==================================================
                                     LEAVE DECISIONS
@@ -1178,7 +1149,6 @@ function NotificationsPanel({
                                     }
                                 )}
 
-
                                 {/* ==================================================
                                     TASK REVIEWS
                                 ================================================== */}
@@ -1221,7 +1191,6 @@ function NotificationsPanel({
                                         </button>
                                     )
                                 )}
-
 
                                 {/* ==================================================
                                     TASK DECISIONS
@@ -1285,7 +1254,6 @@ function NotificationsPanel({
                                     }
                                 )}
 
-
                                 {/* ==================================================
                                     TEAMMATE APPROVALS
                                 ================================================== */}
@@ -1330,7 +1298,6 @@ function NotificationsPanel({
                                     )
                                 )}
 
-
                                 {/* ==================================================
                                     TASK COMPLETIONS
                                 ================================================== */}
@@ -1373,7 +1340,6 @@ function NotificationsPanel({
                                     )
                                 )}
 
-
                                 {/* ==================================================
                                     EMPTY
                                 ================================================== */}
@@ -1396,7 +1362,6 @@ function NotificationsPanel({
                             </div>
                         )}
 
-
                         {/* ==================================================
                             REMINDERS
                         ================================================== */}
@@ -1418,7 +1383,6 @@ function NotificationsPanel({
                         )}
 
                     </div>
-
 
                     {/* ==================================================
                         ANNOUNCEMENT FOOTER
@@ -1447,6 +1411,5 @@ function NotificationsPanel({
         </div>
     );
 }
-
 
 export default NotificationsPanel;

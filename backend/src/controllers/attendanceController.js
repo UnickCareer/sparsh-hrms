@@ -1,3 +1,9 @@
+/**
+ * attendanceController.js
+ *
+ * Backend module for HRMS application
+ */
+
 import pool from "../config/db.js";
 
 // POST /api/attendance/checkin

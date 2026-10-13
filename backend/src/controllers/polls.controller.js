@@ -1,3 +1,9 @@
+/**
+ * polls.controller.js
+ *
+ * Enterprise-grade chat component/module.
+ */
+
 import pool from "../config/db.js";
 import { getMessageById } from "./chat.controller.js";
 import { attachPolls } from "./chat.polls.helper.js";
@@ -13,8 +19,13 @@ async function isActiveParticipant(client, employeeId, conversationId) {
     return r.rows.length > 0;
 }
 
-// POST /api/chat/conversations/:id/polls
-// body: { employeeId, question, options: [..], allowMultipleAnswers, allowVoteChanges }
+/**
+ * Create a poll in conversation
+ * POST /api/chat/conversations/:id/polls
+ * @param {object} req - Express request
+ * @param {object} res - Express response
+ * body: { employeeId, question, options: [...], allowMultipleAnswers, allowVoteChanges }
+ */
 export async function createPoll(req, res) {
     const client = await pool.connect();
     let started = false;
@@ -47,7 +58,6 @@ export async function createPoll(req, res) {
                 message: "Only admins can create polls in groups",
             });
         }
-
 
         await client.query("BEGIN");
         started = true;
@@ -106,8 +116,13 @@ export async function createPoll(req, res) {
     }
 }
 
-// POST /api/chat/messages/:messageId/poll-vote
-// body: { employeeId, optionIds: [..] }
+/**
+ * Vote in a poll
+ * POST /api/chat/messages/:messageId/poll-vote
+ * @param {object} req - Express request
+ * @param {object} res - Express response
+ * body: { employeeId, optionIds: [...] }
+ */
 export async function votePoll(req, res) {
     const client = await pool.connect();
     let started = false;

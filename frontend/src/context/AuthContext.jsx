@@ -1,3 +1,9 @@
+/**
+ * AuthContext.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 import { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext(null);

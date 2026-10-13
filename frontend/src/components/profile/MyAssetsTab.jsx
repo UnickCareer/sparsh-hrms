@@ -1,3 +1,9 @@
+/**
+ * MyAssetsTab.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/profile/MyAssetsTab.jsx
 import { Laptop, User2 } from "lucide-react";
 

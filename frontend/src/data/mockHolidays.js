@@ -1,3 +1,9 @@
+/**
+ * mockHolidays.js
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/data/mockHolidays.js
 // Placeholder holiday calendar (Delhi/NCR region). Replace with real HR-issued policy list.
 

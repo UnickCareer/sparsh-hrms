@@ -1,3 +1,9 @@
+/**
+ * VisitMap.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/pages/VisitMap.jsx
 import { useState } from "react";
 import { MapPin, Users, Car, Navigation } from "lucide-react";

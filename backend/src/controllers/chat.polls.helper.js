@@ -1,3 +1,9 @@
+/**
+ * chat.polls.helper.js
+ *
+ * Backend module for HRMS application
+ */
+
 import pool from "../config/db.js";
 
 // Adds a `poll` object (options, vote counts, voters, my selection) to every

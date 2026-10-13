@@ -1,3 +1,9 @@
+/**
+ * Announcements.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/pages/Announcements.jsx
 import { useOutletContext } from "react-router-dom";
 import { Megaphone } from "lucide-react";

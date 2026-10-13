@@ -1,3 +1,9 @@
+/**
+ * AddQueryModal.jsx
+ *
+ * Frontend component/module for HRMS application
+ */
+
 // src/components/sales/AddQueryModal.jsx
 
 import { useEffect, useState } from "react";
