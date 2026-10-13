@@ -1,583 +1,384 @@
-# Sparsh HRMS
-
-/**
- * README.md
- *
- * HRMS application module
- */
+<div align="center">
 
 # Sparsh HRMS
 
-**Sparsh HRMS (Human Resource Management System)** is a modern, full-stack Human Resource Management platform designed to centralize employee information, attendance, leave management, tasks, visitors, sales queries, IT support, performance reviews, notifications, and internal communication within a unified web application.
+**A full-stack Human Resource Management platform with a built-in, WhatsApp-style team chat.**
 
-The system is developed and maintained locally on **Ubuntu 20.04 LTS**, with a React-based frontend, Node.js/Express backend, and PostgreSQL database.
+Employees · Attendance · Leaves · Tasks · Visitors · Sales Queries · IT Helpdesk · Performance Reviews · Notifications · Team Chat
+
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-Express_5-339933?logo=nodedotjs&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12-4169E1?logo=postgresql&logoColor=white)
+![Ubuntu](https://img.shields.io/badge/Developed_on-Ubuntu_20.04_LTS-E95420?logo=ubuntu&logoColor=white)
+
+</div>
 
 ---
 
-## Project Overview
+## Table of Contents
 
-Sparsh HRMS is designed around a role-based enterprise workflow where employees, administrators, HR personnel, and system owners can access functionality appropriate to their responsibilities.
+1. [Overview](#overview)
+2. [Tech Stack](#tech-stack)
+3. [Modules](#modules)
+4. [Team Chat](#team-chat)
+5. [System Architecture](#system-architecture)
+6. [Project Structure](#project-structure)
+7. [Database](#database)
+8. [Getting Started](#getting-started)
+9. [Roles and Access](#roles-and-access)
+10. [Project Status and Roadmap](#project-status-and-roadmap)
+11. [Development Notes](#development-notes)
+12. [License](#license)
 
-The application follows a modular full-stack architecture:
+---
 
-```text
-React Frontend
-      │
-      │ HTTP / REST API
-      ▼
-Node.js + Express Backend
-      │
-      │ PostgreSQL Driver / Queries
-      ▼
-PostgreSQL Database
-```
+## Overview
 
-The platform is being developed with an emphasis on:
+Sparsh HRMS brings everyday company workflows into one web application. Employees use it to mark attendance, apply for leave, work on assigned tasks, raise IT tickets and talk to colleagues. Admins and HR use it to approve leave, assign and review tasks, handle sales queries, run performance reviews and manage group conversations.
 
-- Centralized employee data
-- Role-based access and workflows
-- Responsive administration interfaces
-- Structured REST APIs
-- PostgreSQL-backed persistent storage
-- Internal employee communication
-- Real-time communication capabilities
-- Maintainable and modular frontend/backend architecture
+The application is a **React single-page app** talking to a **Node.js / Express REST API**, backed by a **PostgreSQL** database.
 
 ---
 
 ## Tech Stack
 
-### Frontend
-
-- **React**
-- **Vite**
-- **Tailwind CSS**
-- **Lucide React** — UI icons
-- **Framer Motion** — animations and transitions
-- **React Hot Toast** — notifications and feedback
-- **Emoji Mart** — emoji functionality
-
-### Backend
-
-- **Node.js**
-- **Express.js**
-- RESTful API architecture
-- PostgreSQL connection pooling
-- File upload handling with **Multer**
-- Authentication/authorization and role-based request handling
-
-### Database
-
-- **PostgreSQL 12**
-- Relational data model
-- Structured tables for HRMS modules
-- Foreign-key relationships between employees, workflows, and communication records
-
-### Development Environment
-
-- **Ubuntu 20.04.6 LTS**
-- Local PostgreSQL server
-- Local Node.js development environment
-- Git-based source management
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 19, Vite 8, Tailwind CSS 4, React Router 7 |
+| **UI libraries** | Lucide React (icons), React Hot Toast (notifications), `@emoji-mart/data` (emoji catalogue), `pdfjs-dist` (PDF support) |
+| **Backend** | Node.js, Express 5, `pg` (PostgreSQL driver), `cors`, `dotenv`, Multer 2 (file uploads), Nodemon (dev reload) |
+| **Database** | PostgreSQL 12 |
+| **Tooling** | ESLint 10, Git |
+| **Development OS** | Ubuntu 20.04 LTS |
 
 ---
 
-# Features
+## Modules
 
-## Employee Management
+| Module | What it does | Data source |
+|---|---|---|
+| **Login / Session** | Sign in with employee code or email and password; protected routes; role-aware screens | PostgreSQL |
+| **Dashboard** | Attendance widget, attendance calendar, leave requests, assets and announcements panels | PostgreSQL (announcements use sample data) |
+| **Employee Directory** | Searchable phone directory of all employees | PostgreSQL |
+| **Attendance** | Check-in and check-out with location capture and reverse geocoding, monthly attendance history | PostgreSQL |
+| **Leaves** | Apply for leave, track status and balance, admin approval queue | PostgreSQL |
+| **Tasks** | Create and assign tasks, update status, submit reports, admin review of submissions | PostgreSQL |
+| **Visitors** | Register and track visitors | PostgreSQL |
+| **Sales Query** | Record sales queries and assign them to employees, with assignment notifications | PostgreSQL |
+| **Visit Map** | Route and visit map view | Prototype, sample data |
+| **IT Helpdesk** | Raise tickets, assign them, post updates and track status | PostgreSQL |
+| **Performance Review** | Review cycles, goals, self assessment, manager and HR review, approval and history | PostgreSQL |
+| **Notifications** | In-app notification panel with read and unread state | PostgreSQL |
+| **Profile** | Personal details, salary slip, documents, holidays, assets, QR code, change password | Front-end views, some sample data |
+| **Team Chat** | Direct and group messaging with media, polls and group roles | PostgreSQL, see [Team Chat](#team-chat) |
 
-The HRMS provides centralized employee record management, including employee information required by different HR and administrative workflows.
+### Performance review workflow
 
-Core employee functionality includes:
-
-- Employee records
-- Employee identification
-- Department/designation-related information
-- Role-based access
-- Employee-specific workflow data
-- Employee-linked attendance, leave, task, and performance information
-
----
-
-## Attendance Management
-
-The system contains an attendance module designed to maintain employee attendance records.
-
-Attendance functionality includes support for:
-
-- Employee attendance records
-- Attendance status
-- Check-in/check-out workflows
-- Location/geo-related attendance information
-- Employee-linked attendance history
-
----
-
-## Leave Management
-
-The leave module manages employee leave workflows and balances.
-
-The system supports:
-
-- Leave requests
-- Leave status tracking
-- Employee leave balances
-- Approval workflows
-- Manager/administrative review
-
----
-
-## Task Management
-
-Sparsh HRMS includes task management functionality for assigning and tracking work.
-
-The system supports:
-
-- Task creation
-- Employee/task assignments
-- Task status management
-- Employee-linked tasks
-- Administrative task workflows
-
----
-
-## Visitor Management
-
-The application includes a visitor-management module for maintaining visitor records and associated information.
-
----
-
-## Sales Query Management
-
-Sales queries can be recorded and assigned to employees.
-
-The module includes:
-
-- Sales query records
-- Assignment workflows
-- Employee-linked queries
-- Assignment-related notifications
-
----
-
-## IT Support / Ticket Management
-
-The HRMS includes an IT ticketing workflow for internal technical support.
-
-The system supports:
-
-- IT ticket creation
-- Ticket assignment
-- Ticket status
-- Employee-linked tickets
-- Assignment notifications
-
----
-
-## Performance Management
-
-Sparsh HRMS includes a structured employee performance-review system.
-
-The current performance workflow is designed around:
-
-```text
-Not Started
-     ↓
-Self Assessment
-     ↓
-Manager Review
-     ↓
-HR Review
-     ↓
-Approved
-     ↓
-Completed
+```mermaid
+flowchart LR
+    A[Not Started] --> B[Self Assessment] --> C[Manager Review] --> D[HR Review] --> E[Approved] --> F[Completed]
 ```
 
-The system also supports workflows such as:
-
-- Performance cycles
-- Employee goals
-- Self assessment
-- Manager review
-- HR review
-- Approval
-- Correction workflows
-- Performance history
-
-The current HRMS performance cycle is structured around the **FY 2026–27** period.
+The current review cycle is structured around **FY 2026–27**.
 
 ---
 
-## Notifications
+## Team Chat
 
-The HRMS contains an integrated notification system for important application events.
+An internal messaging system modelled on WhatsApp Web and integrated with the HRMS employee records.
 
-Examples include:
+### Messaging
 
-- Sales-query assignment notifications
-- IT-ticket assignment notifications
-- Reference-linked notifications
-- Read/unread notification state
+- Direct (one-to-one) and group conversations
+- Reply, edit (within 5 minutes of sending), forward, pin and star
+- **Delete for everyone** (sender only) and **Delete for me** (any participant)
+- Reactions with a full searchable emoji picker and recent emojis, plus a reaction details card
+- Message formatting: bold, italic, strikethrough, inline code, code blocks, lists and quotes
+- Clickable links, in-chat search with highlighting, message selection mode
+- Delivery states: sent, delivered, read
+- Clear chat and delete chat (per participant)
+- Report message
 
-Notifications are intended to remain integrated into the main application interface rather than introducing unnecessary standalone notification infrastructure.
+### Media and documents
+
+- Send photos, videos and documents with captions
+- Preview before sending, with **crop**, **doodle**, undo and redo, copy and download
+- Add more files from the thumbnail strip, with a discard confirmation
+- WhatsApp-style 2×2 media grid for four or more files
+- Full-screen media viewer with zoom, rotate, flip, thumbnails and video playback
+- PDF preview, and "Save as" / download for received files
+- **Chat Info panel** with Media, Documents and Links tabs
+- **Multi-select** in the Info panel: download, forward and delete across Media, Documents and Links
+- Forwarding keeps attachments
+
+### Polls
+
+- Create polls with several options, single or multiple answers, and optional vote changes
+- Vote and view who voted for what
+
+### Groups, roles and permissions
+
+- **Only system admins can create groups.** The creator becomes the group **Owner**.
+- Group photo, name and description can be edited by Owner, Super Admin and Admin.
+- A group can be set to **"Only admins can send messages"**.
+
+| Action | Owner | Super Admin | Admin | Member |
+|---|:---:|:---:|:---:|:---:|
+| Role chip shown | Owner | Super Admin | Admin | none |
+| Add people | ✅ | ✅ | ✅ | ❌ |
+| Remove a member | ✅ | ✅ | ✅ | ❌ |
+| Remove an Admin | ✅ | ✅ | ❌ | ❌ |
+| Remove a Super Admin | ✅ | ❌ | ❌ | ❌ |
+| Promote a member to Admin | ✅ | ✅ | ✅ | ❌ |
+| Demote an Admin | ✅ | ✅ | ❌ | ❌ |
+| Make or remove a Super Admin | ✅ | ❌ | ❌ | ❌ |
+| Edit name, description, photo | ✅ | ✅ | ✅ | ❌ |
+| Create polls in a group | ✅ | ✅ | ✅ | ❌ |
+| Toggle "only admins can send messages" | ✅ | ✅ | ✅ | ❌ |
+| Send messages, files, react, vote | ✅ | ✅ | ✅ | ✅ (unless admins-only) |
+
+Direct chats have no restrictions: both people can send anything, including polls. The Owner can never be removed. All of these rules are enforced on the backend, not only hidden in the interface.
 
 ---
 
-# Internal Chat — Active Development
+## System Architecture
 
-The internal Chat module is currently under active development/restoration.
+```mermaid
+flowchart TB
+    subgraph Client["Browser: React + Vite"]
+        UI["Pages: Dashboard, Attendance, Leaves, Tasks, Visitors, Sales, IT, Performance, Profile, Chat"]
+    end
 
-The objective is to provide an internal WhatsApp-style communication system for employees while integrating it directly with the HRMS employee and role structure.
+    subgraph Server["Node.js + Express (port 5000)"]
+        R["Routes"] --> C["Controllers"]
+        C --> P["Permissions / Auth middleware"]
+        U["Upload middleware (Multer)"]
+    end
 
-The Chat system is being developed around:
+    DB[("PostgreSQL 12")]
+    F[("uploads/chat: media and documents")]
 
-- Direct conversations
-- Group conversations
-- Employee participants
-- Text messaging
-- Message reactions
-- Reply functionality
-- Message editing
-- Message deletion
-- Message selection
-- Forwarding
-- Pinning
-- Starring
-- Conversation search
-- Attachments
-- Images
-- Videos
-- Documents
-- Media previews
-- Message receipts/read state
-- Group management
-- Role-based group authority
-
-### Chat Role Hierarchy
-
-The intended Chat hierarchy is:
-
-```text
-Owner
-  │
-  ├── Administrator
-  │
-  └── Employee
+    UI -- "REST / JSON via /api" --> R
+    UI -- "/uploads" --> F
+    C --> DB
+    U --> F
 ```
 
-Website Administrator accounts act as the Chat Owner authority within the current HRMS design.
+- In development, Vite serves the frontend on **5173** and proxies `/api` and `/uploads` to the backend on **5000** (see `frontend/vite.config.js`).
+- Controllers hold the business rules and use SQL through a pooled `pg` connection.
+- Chat permission rules live in one place: `backend/src/controllers/chat.permissions.js`.
+- Chat media is stored on disk under `backend/uploads/chat`, with metadata in PostgreSQL.
 
 ---
 
-# Media & Attachment Development
-
-The Chat attachment system is currently being restored and integrated with the existing PostgreSQL-backed Chat implementation.
-
-The backend already contains infrastructure for Chat attachments, including:
-
-- Image uploads
-- Video uploads
-- Document uploads
-- Attachment metadata
-- Conversation attachment endpoints
-- Static upload serving
-- Multipart upload handling
-
-The frontend is being enhanced to provide a richer media experience.
-
-Planned/active media capabilities include:
-
-- Multiple photo/video selection
-- Image preview
-- Video preview
-- Captions
-- Crop
-- Doodle
-- Undo/redo
-- Rotation
-- Media viewer
-- Zoom
-- Download/save
-- Video playback
-- Clipboard image copying
-- Clipboard image pasting
-- Attachment-aware forwarding
-
----
-
-# Database
-
-The PostgreSQL database currently contains dedicated Chat-related structures alongside the HRMS modules.
-
-Important Chat tables include:
-
-```text
-chat_conversations
-chat_participants
-chat_messages
-chat_message_reactions
-chat_starred_messages
-chat_message_attachments
-```
-
-The existing database is being preserved wherever possible during Chat restoration.
-
-**Database/schema changes are intentionally minimized** so that existing HRMS functionality is not unnecessarily affected.
-
----
-
-# System Architecture
-
-Sparsh HRMS follows a layered full-stack architecture.
-
-```text
-┌─────────────────────────────────────────────┐
-│              React Frontend                 │
-│                                             │
-│  Dashboard │ Employees │ Attendance         │
-│  Leaves    │ Tasks     │ Performance        │
-│  Visitors  │ IT        │ Sales Queries      │
-│  Notifications │ Chat                      │
-└──────────────────────┬──────────────────────┘
-                       │
-                       │ REST / HTTP
-                       ▼
-┌─────────────────────────────────────────────┐
-│          Node.js + Express Backend          │
-│                                             │
-│  Routes                                      │
-│    ↓                                         │
-│  Controllers                                 │
-│    ↓                                         │
-│  Database / Business Logic                   │
-│                                             │
-│  Chat APIs                                   │
-│  File Upload APIs                            │
-└──────────────────────┬──────────────────────┘
-                       │
-                       │ PostgreSQL
-                       ▼
-┌─────────────────────────────────────────────┐
-│              PostgreSQL 12                  │
-│                                             │
-│  Employees                                   │
-│  Attendance                                  │
-│  Leaves                                      │
-│  Tasks                                       │
-│  Visitors                                    │
-│  Sales Queries                               │
-│  IT Tickets                                  │
-│  Performance                                 │
-│  Notifications                               │
-│  Chat                                        │
-└─────────────────────────────────────────────┘
-```
-
----
-
-# Chat Real-Time Architecture
-
-The next stage of the Chat architecture introduces a WebSocket layer for low-latency communication.
-
-The planned architecture is:
-
-```text
-React Chat UI
-      │
-      ├──────── REST API ──────────┐
-      │                            │
-      ▼                            ▼
-WebSocket Layer              Express API
-      │                            │
-      │                            ▼
-      │                       PostgreSQL
-      │
-      └──── Real-time events
-             │
-             ├── New message
-             ├── Message updates
-             ├── Read receipts
-             ├── Reactions
-             ├── Typing state
-             └── Conversation updates
-```
-
-REST APIs remain responsible for persistent operations and data retrieval, while WebSockets are intended to provide low-latency delivery of real-time events.
-
----
-
-# Active Development Roadmap
-
-## Phase 1 — Core HRMS
-
-**Status: Completed / Operational**
-
-- [x] Employee database management
-- [x] Employee-linked HR workflows
-- [x] Responsive dashboard
-- [x] Attendance management
-- [x] Leave management
-- [x] Task management
-- [x] Visitor management
-- [x] Sales query management
-- [x] IT ticket management
-- [x] Performance management
-- [x] Application notifications
-- [x] PostgreSQL integration
-
----
-
-## Phase 2 — Chat Restoration
-
-**Status: In Progress**
-
-- [x] Chat database tables
-- [x] Direct conversations
-- [x] Group conversations
-- [x] Text messaging
-- [x] Message reactions
-- [x] Reply functionality
-- [x] Message editing
-- [x] Message deletion
-- [x] Pin/star functionality
-- [x] Conversation/message selection
-- [x] Attachment backend infrastructure
-- [x] Image/video/document upload infrastructure
-- [ ] Complete Chat frontend restoration
-- [ ] Attachment-aware message forwarding
-- [ ] Image clipboard copy
-- [ ] Clipboard media paste
-- [ ] Advanced media editor
-- [ ] Advanced media viewer
-- [ ] Final Chat regression testing
-
----
-
-## Phase 3 — Real-Time Communication
-
-**Status: Pending**
-
-- [ ] WebSocket layer
-- [ ] Real-time message delivery
-- [ ] Real-time conversation updates
-- [ ] Read/delivery events
-- [ ] Real-time reactions
-- [ ] Typing indicators
-- [ ] Connection/reconnection handling
-- [ ] WebSocket authentication
-- [ ] Multi-user concurrency testing
-
----
-
-## Phase 4 — Production Hardening
-
-**Status: Planned**
-
-- [ ] Comprehensive API validation
-- [ ] Authentication hardening
-- [ ] Authorization audit
-- [ ] File-upload security review
-- [ ] Error handling improvements
-- [ ] Database performance optimization
-- [ ] Logging and monitoring
-- [ ] Automated testing
-- [ ] Production deployment configuration
-- [ ] Backup and recovery procedures
-
----
-
-# Development Principles
-
-The project is being developed with the following principles:
-
-### Preserve Existing Functionality
-
-New features should not unnecessarily break already-working HRMS modules.
-
-### Database Safety
-
-Existing PostgreSQL structures should be reused wherever practical. Schema modifications should only be introduced when genuinely required by a feature.
-
-### Modular Architecture
-
-Frontend components, backend routes, controllers, and database responsibilities should remain separated and maintainable.
-
-### Role-Based Access
-
-Administrative and employee functionality should follow the application's established role hierarchy.
-
-### Progressive Restoration
-
-Complex modules such as Chat are being restored incrementally:
-
-```text
-Audit
-  ↓
-Database verification
-  ↓
-Backend verification
-  ↓
-Frontend restoration
-  ↓
-Integration testing
-  ↓
-Real-time layer
-  ↓
-Production hardening
-```
-
----
-
-# Local Development Environment
-
-The project is currently developed locally on:
-
-```text
-Ubuntu 20.04 LTS
-PostgreSQL 12
-Node.js
-React + Vite
-```
-
-Example project structure:
+## Project Structure
 
 ```text
 sparsh-hrms/
 ├── backend/
-│   ├── src/
-│   │   ├── controllers/
-│   │   ├── routes/
-│   │   ├── db/
-│   │   └── ...
-│   └── ...
+│   ├── .env.example                 # copy to .env
+│   ├── package.json
+│   └── src/
+│       ├── server.js                # Express app, route mounting, startup
+│       ├── config/db.js             # PostgreSQL connection pool
+│       ├── routes/                  # one file per module
+│       │   ├── employee.routes.js
+│       │   ├── attendanceRoutes.js
+│       │   ├── leavesRoutes.js
+│       │   ├── tasksRoutes.js
+│       │   ├── visitorsRoutes.js
+│       │   ├── salesQueriesRoutes.js
+│       │   ├── itRoutes.js
+│       │   ├── performanceReview.routes.js
+│       │   └── chat.routes.js
+│       ├── controllers/             # business logic
+│       │   ├── chat.controller.js        # conversations, messages, reactions, attachments
+│       │   ├── chat.group.controller.js  # group roles, members, group info and photo
+│       │   ├── chat.permissions.js       # who may do what in chat
+│       │   ├── polls.controller.js       # create poll, vote
+│       │   ├── chat.polls.helper.js      # attach poll data to messages
+│       │   └── …one controller per other module
+│       ├── middleware/
+│       │   ├── chatAuth.js
+│       │   ├── chatUpload.js        # file types, size limits, storage
+│       │   └── errorHandler.js
+│       ├── realtime/chat.realtime.js
+│       └── db/schema.sql            # database schema
 │
 ├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   └── ...
-│   └── ...
-│
-├── package.json
-├── README.md
-└── ...
+│   ├── index.html
+│   ├── vite.config.js               # dev server and API proxy
+│   ├── public/                      # favicon, HR documents
+│   └── src/
+│       ├── main.jsx · App.jsx       # entry point and routes
+│       ├── context/AuthContext.jsx  # logged-in employee
+│       ├── pages/                   # one page per module, plus settings/ChatSettings.jsx
+│       ├── components/
+│       │   ├── layout/              # Sidebar, Topbar, DashboardLayout, ProfileDropdown
+│       │   ├── chat/
+│       │   │   ├── info/            # ChatInfoPanel: members, media, documents, links
+│       │   │   ├── media/           # composer, lightbox, editor, attachment rendering
+│       │   │   └── poll/            # poll composer, poll message, votes panel
+│       │   ├── attendance · dashboard · it · leaves · profile
+│       │   ├── sales · tasks · topbar · visitors · visitmap · ui · routes
+│       ├── data/                    # sample data for prototype screens
+│       └── utils/messageLinks.js
+└── README.md
 ```
 
 ---
 
-# Current Project Status
+## Database
 
-**Overall Status: Active Development**
+PostgreSQL, database name **`sparsh_hrms`**. The schema is in `backend/src/db/schema.sql` and contains table definitions, constraints, indexes and triggers only (no employee data and no credentials).
 
-The core HRMS platform and PostgreSQL-backed business modules are established. The current development focus is the restoration and completion of the internal Chat experience, followed by implementation of the WebSocket layer for real-time communication.
+| Area | Tables |
+|---|---|
+| Employees and HR | `employees`, `attendance`, `leaves` |
+| Tasks | `tasks`, `task_assignments` |
+| Visitors and sales | `visitors`, `sales_queries`, `sales_query_notifications` |
+| IT helpdesk | `it_tickets`, `it_ticket_updates` |
+| Performance | `performance_cycles`, `performance_reviews`, `performance_goals`, `performance_review_history` |
+| Notifications | `notifications` |
+| Chat | `chat_conversations`, `chat_participants`, `chat_messages`, `chat_message_reactions`, `chat_message_attachments`, `chat_message_receipts`, `chat_pinned_messages`, `chat_starred_messages`, `chat_message_reports`, `chat_hidden_messages` |
+| Chat polls | `chat_polls`, `chat_poll_options`, `chat_poll_votes` |
 
-The project is intentionally being developed incrementally to protect existing HRMS functionality while introducing more advanced communication capabilities.
+Chat-specific notes:
+
+- Group roles are `owner`, `super_admin`, `admin` and `member` (`chat_participants.participant_role`).
+- "Delete for me" is stored per person in `chat_hidden_messages`; "Delete for everyone" marks the message itself as deleted.
+- `chat_conversations.only_admins_can_message` holds the admins-only setting.
 
 ---
 
-# License
+## Getting Started
 
-This project is currently maintained as a private/internal HRMS application.
+### Prerequisites
 
-License and distribution terms should be added before any public release.
+- **Node.js 20.19+ or 22.12+** (required by Vite 8)
+- **PostgreSQL 12+**
+- Git
+
+### 1. Clone
+
+```bash
+git clone <repository-url>
+cd sparsh-hrms
+```
+
+### 2. Create the database
+
+```bash
+sudo -u postgres createdb sparsh_hrms
+sudo -u postgres psql -d sparsh_hrms -f backend/src/db/schema.sql
+```
+
+### 3. Configure the backend
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+Edit `.env`:
+
+```env
+PORT=5000
+DB_USER=postgres
+DB_PASSWORD=your_password_here
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=sparsh_hrms
+```
+
+### 4. Run the backend
+
+```bash
+npm install
+npm run dev        # http://localhost:5000
+```
+
+> Start the backend **from the `backend/` folder**. Uploaded chat files are saved to `backend/uploads/chat`, which is created automatically.
+
+### 5. Run the frontend
+
+```bash
+cd ../frontend
+npm install
+npm run dev        # http://localhost:5173
+```
+
+### 6. Sign in
+
+Open `http://localhost:5173` and sign in with an employee code or email and password from your `employees` table. Employees whose `role` is `admin` get the admin screens and can create chat groups.
+
+### Useful commands
+
+| Command | Where | Purpose |
+|---|---|---|
+| `npm run dev` | `backend/` | Start the API with automatic reload |
+| `npm run dev` | `frontend/` | Start the Vite dev server |
+| `npm run build` | `frontend/` | Production build into `frontend/dist` |
+| `npm run lint` | `frontend/` | Run ESLint |
+
+---
+
+## Roles and Access
+
+There are two layers of roles, and they are separate:
+
+| Layer | Where it is stored | Values | Used for |
+|---|---|---|---|
+| **System role** | `employees.role` | `admin`, `employee` | Admin screens (leave approval, task review, performance, etc.) and who may **create chat groups** |
+| **Group role** | `chat_participants.participant_role` | `owner`, `super_admin`, `admin`, `member` | Powers inside one chat group (see the table in [Team Chat](#team-chat)) |
+
+A system admin who is added to someone else's group joins as a plain member until the group's leaders promote them.
+
+---
+
+## Project Status and Roadmap
+
+### ✅ Completed
+
+- [x] Employees, attendance, leaves, tasks, visitors, sales queries, IT helpdesk
+- [x] Performance review workflow
+- [x] Notifications
+- [x] Profile area and employee directory
+- [x] Team chat: direct and group messaging, reactions, replies, edit, delete for me and for everyone, pin, star, forward
+- [x] Media composer (crop, doodle), media viewer, 2×2 media grid, documents and PDF preview
+- [x] Chat Info panel with media, documents and links, and multi-select download, forward and delete
+- [x] Polls
+- [x] Group roles (Owner, Super Admin, Admin), admin-only group creation, admin-only messaging, group photo and info editing
+
+### 🚧 Pending
+
+- [ ] **WebSockets**: live delivery of messages, reactions, edits, deletes, read receipts, typing indicators and notifications
+- [ ] **Dark theme**: the theme toggle is in the top bar; the dark colour scheme is not implemented yet
+- [ ] **Chat settings**: the settings page exists (read receipts, notifications, sound alerts, online status); the options are not yet connected to chat behaviour
+- [ ] A few remaining UI polish fixes
+
+### 🔭 Planned: production hardening
+
+- [ ] Password hashing and token-based authentication
+- [ ] Verified identity on every API and WebSocket request
+- [ ] Input validation and authorization audit across all modules
+- [ ] Automated tests
+- [ ] Logging and monitoring
+- [ ] Production deployment configuration and backup procedure
+
+---
+
+## Development Notes
+
+- The project began on Windows and now lives on **Ubuntu 20.04 LTS**. All current development, testing and builds are done on Ubuntu.
+- Source files carry a header comment and consistent formatting; behaviour was not changed by the formatting clean-up.
+- Prototype screens (Visit Map, Announcements, Holidays) use sample data from `frontend/src/data/`.
+- Employee HR documents under `frontend/public/documents/` and the local seed script `backend/src/db/seed.js` are intentionally not committed to Git.
+
+---
+
+## License
+
+This is a private, internal application. Licence and distribution terms should be defined before any public release.
